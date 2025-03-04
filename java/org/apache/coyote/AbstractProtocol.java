@@ -73,12 +73,13 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
      * Endpoint that provides low-level network I/O - must be matched to the ProtocolHandler implementation
      * (ProtocolHandler using NIO, requires NIO Endpoint etc.).
      */
+    // 每个协议处理程序都需要一个Endpoint实例，该实例封装了与底层网络通信所需的信息，如端口、协议栈、缓冲区大小等。
     private final AbstractEndpoint<S, ?> endpoint;
 
 
     private Handler<S> handler;
 
-
+    // 用于跟踪所有处于等待状态的Processor对象
     private final Set<Processor> waitingProcessors = Collections
             .newSetFromMap(new ConcurrentHashMap<Processor, Boolean>());
 

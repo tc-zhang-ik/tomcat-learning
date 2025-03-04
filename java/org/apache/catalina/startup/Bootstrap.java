@@ -139,12 +139,18 @@ public final class Bootstrap {
 
     private void initClassLoaders() {
         try {
+            // 通过读取 catalina.properties 文件获取common.loader要扫描的路径并根据其生成URLClassLoader，
+            // 将路径下的jar包或者class文件加载进JVM中（默认按需加载，只有被用到的时候才加载）
             commonLoader = createClassLoader("common", null);
             if (commonLoader == null) {
                 // no config file, default to this loader - we might be in a 'single' env.
                 commonLoader = this.getClass().getClassLoader();
             }
+            // 类似的行为，扫描server.loader，生成类加载器的时候以 commonLoader 作为父加载器
+            // 如果没有配置 server.loader ,则直接返回commonLoader作为 catalinaLoader
             catalinaLoader = createClassLoader("server", commonLoader);
+            // 扫描 shared.loader，生成类加载器的时候以 commonLoader 作为父加载器
+            // 如果没有配置 shared.loader ,则直接返回 commonLoader 作为 sharedLoader
             sharedLoader = createClassLoader("shared", commonLoader);
         } catch (Throwable t) {
             handleThrowable(t);
@@ -189,7 +195,7 @@ public final class Bootstrap {
                 repositories.add(new Repository(repository, RepositoryType.DIR));
             }
         }
-
+        // 通过工厂方法集中创建ClassLoader
         return ClassLoaderFactory.createClassLoader(repositories, parent);
     }
 
@@ -247,17 +253,18 @@ public final class Bootstrap {
      * @throws Exception Fatal initialization error
      */
     public void init() throws Exception {
-
+        // 初始化 catalina shared common类加载器,默认情况下三者为同一对象
         initClassLoaders();
-
+        // 设置当前线程的上下文类加载器为 catalinaLoader
         Thread.currentThread().setContextClassLoader(catalinaLoader);
-
+        // 通过 catalinaLoader 加载 Tomcat 核心类
         SecurityClassLoad.securityClassLoad(catalinaLoader);
 
         // Load our startup class and call its process() method
         if (log.isTraceEnabled()) {
             log.trace("Loading startup class");
         }
+        // 通过 catalinaLoader 加载 Catalina 类，并将 sharedLoader 设置为 Catalina 的 parentClassLoader
         Class<?> startupClass = catalinaLoader.loadClass("org.apache.catalina.startup.Catalina");
         Object startupInstance = startupClass.getConstructor().newInstance();
 
@@ -442,6 +449,7 @@ public final class Bootstrap {
                 // Don't set daemon until init() has completed
                 Bootstrap bootstrap = new Bootstrap();
                 try {
+                    // 初始化类加载器并加载核心类
                     bootstrap.init();
                 } catch (Throwable t) {
                     handleThrowable(t);
@@ -471,6 +479,7 @@ public final class Bootstrap {
                 args[args.length - 1] = "stop";
                 daemon.stop();
             } else if (command.equals("start")) {
+                // 设置 Catalina 的 await 属性为 true，Tomcat 服务器启动后会进入等待状态，直到接收到停止信号。
                 daemon.setAwait(true);
                 daemon.load(args);
                 daemon.start();

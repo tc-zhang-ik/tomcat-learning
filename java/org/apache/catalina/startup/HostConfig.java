@@ -308,8 +308,10 @@ public class HostConfig implements LifecycleListener {
         if (event.getType().equals(Lifecycle.PERIODIC_EVENT)) {
             check();
         } else if (event.getType().equals(Lifecycle.BEFORE_START_EVENT)) {
+            // 确保appBaseFile和docBaseFile是目录已经被创建
             beforeStart();
         } else if (event.getType().equals(Lifecycle.START_EVENT)) {
+            //
             start();
         } else if (event.getType().equals(Lifecycle.STOP_EVENT)) {
             stop();
@@ -462,12 +464,15 @@ public class HostConfig implements LifecycleListener {
     protected void deployApps() {
         File appBase = host.getAppBaseFile();
         File configBase = host.getConfigBaseFile();
+        // 过滤掉不合法的路径（deployIgnore属性）
         String[] filteredAppPaths = filterAppPaths(appBase.list());
         // Deploy XML descriptors from configBase
+        // 部署一系列配置描述符文件（通常是.xml文件）
         deployDescriptors(configBase, configBase.list());
         // Deploy WARs
         deployWARs(appBase, filteredAppPaths);
         // Deploy expanded folders
+        // 部署 exploded folders
         deployDirectories(appBase, filteredAppPaths);
     }
 
@@ -769,24 +774,30 @@ public class HostConfig implements LifecycleListener {
         List<Future<?>> results = new ArrayList<>();
 
         for (String file : files) {
+            // 忽略名为 "META-INF" 和 "WEB-INF" 的目录
             if (file.equalsIgnoreCase("META-INF")) {
                 continue;
             }
             if (file.equalsIgnoreCase("WEB-INF")) {
                 continue;
             }
-
+            // 根据文件路径和 appBase 构建 File 对象
             File war = new File(appBase, file);
+            // 筛选出以 ".war" 结尾的文件，且该文件是一个普通文件，并且不在无效 WAR 文件列表中
             if (file.toLowerCase(Locale.ENGLISH).endsWith(".war") && war.isFile() && !invalidWars.contains(file)) {
                 ContextName cn = new ContextName(file, true);
+                // 尝试将该 ContextName 的名称添加到服务列表中
                 if (tryAddServiced(cn.getName())) {
                     try {
+                        // 检查该 ContextName 对应的应用是否已经部署
                         if (deploymentExists(cn.getName())) {
                             DeployedApplication app = deployed.get(cn.getName());
                             boolean unpackWAR = unpackWARs;
+                            // 如果主机的 findChild 方法返回的是 StandardContext 实例，则根据其 unpackWAR 属性更新 unpackWAR 变量
                             if (unpackWAR && host.findChild(cn.getName()) instanceof StandardContext) {
                                 unpackWAR = ((StandardContext) host.findChild(cn.getName())).getUnpackWAR();
                             }
+                            // 如果不需要解压缩 WAR 文件且应用不为空
                             if (!unpackWAR && app != null) {
                                 // Need to check for a directory that should not be
                                 // there
@@ -801,11 +812,13 @@ public class HostConfig implements LifecycleListener {
                                     app.loggedDirWarning = false;
                                 }
                             }
+                            // 从服务列表中移除该 ContextName 的名称
                             removeServiced(cn.getName());
                             continue;
                         }
 
                         // Check for WARs with /../ /./ or similar sequences in the name
+                        // 检查 WAR 文件名称是否包含非法字符序列
                         if (!validateContextPath(appBase, cn.getBaseName())) {
                             log.error(sm.getString("hostConfig.illegalWarName", file));
                             invalidWars.add(file);
@@ -814,6 +827,7 @@ public class HostConfig implements LifecycleListener {
                         }
 
                         // DeployWAR will call removeServiced
+                        // 提交一个 DeployWar 任务到执行器中，DeployWAR 方法会调用 deployWAR 方法
                         results.add(es.submit(new DeployWar(this, cn, war)));
                     } catch (Throwable t) {
                         ExceptionUtils.handleThrowable(t);
@@ -826,6 +840,7 @@ public class HostConfig implements LifecycleListener {
 
         for (Future<?> result : results) {
             try {
+                // 等待 deployWar 任务执行完成
                 result.get();
             } catch (Exception e) {
                 log.error(sm.getString("hostConfig.deployWar.threaded.error"), e);
@@ -1084,6 +1099,7 @@ public class HostConfig implements LifecycleListener {
                         }
 
                         // DeployDirectory will call removeServiced
+                        // 将部署任务提交到线程池中执行
                         results.add(es.submit(new DeployDirectory(this, cn, dir)));
                     } catch (Throwable t) {
                         ExceptionUtils.handleThrowable(t);
@@ -1122,7 +1138,9 @@ public class HostConfig implements LifecycleListener {
         }
 
         Context context = null;
+        // META-INF/context.xml
         File xml = new File(dir, Constants.ApplicationContextXml);
+        // /Users/tczhang/IdeaProjects/sourcecodes/tomcat-learning2/home/conf/Catalina/localhost/ROOT.xml
         File xmlCopy = new File(host.getConfigBaseFile(), cn.getBaseName() + ".xml");
 
         DeployedApplication deployedApp;
@@ -1130,6 +1148,7 @@ public class HostConfig implements LifecycleListener {
         boolean deployThisXML = isDeployThisXML(dir, cn);
 
         try {
+            // 解析server.xml 生成context对象
             if (deployThisXML && xml.exists()) {
                 synchronized (digesterLock) {
                     try {
@@ -1164,7 +1183,7 @@ public class HostConfig implements LifecycleListener {
             } else {
                 context = (Context) Class.forName(contextClass).getConstructor().newInstance();
             }
-
+            // 初始化生命周期监听器 ContextConfig监听器
             Class<?> clazz = Class.forName(host.getConfigClass());
             LifecycleListener listener = (LifecycleListener) clazz.getConstructor().newInstance();
             context.addLifecycleListener(listener);
@@ -1173,17 +1192,21 @@ public class HostConfig implements LifecycleListener {
             context.setPath(cn.getPath());
             context.setWebappVersion(cn.getVersion());
             context.setDocBase(cn.getBaseName());
+            // 将context添加到host中，会随之出发StandardConfig的start方法，进而触发ContextConfig的lifecycleEvent方法
             host.addChild(context);
         } catch (Throwable t) {
             ExceptionUtils.handleThrowable(t);
             log.error(sm.getString("hostConfig.deployDir.error", dir.getAbsolutePath()), t);
         } finally {
+            // 5. 创建部署记录
             deployedApp = new DeployedApplication(cn.getName(), xml.exists() && deployThisXML && copyThisXml);
 
             // Fake re-deploy resource to detect if a WAR is added at a later
             // point
+            // 6. 设置监控资源
             deployedApp.redeployResources.put(dir.getAbsolutePath() + ".war", Long.valueOf(0));
             deployedApp.redeployResources.put(dir.getAbsolutePath(), Long.valueOf(dir.lastModified()));
+            // 7. 处理配置文件监控
             if (deployThisXML && xml.exists()) {
                 if (copyThisXml) {
                     deployedApp.redeployResources.put(xmlCopy.getAbsolutePath(), Long.valueOf(xmlCopy.lastModified()));
@@ -1201,12 +1224,13 @@ public class HostConfig implements LifecycleListener {
                     deployedApp.redeployResources.put(xml.getAbsolutePath(), Long.valueOf(0));
                 }
             }
+            // 8. 添加资源监控
             addWatchedResources(deployedApp, dir.getAbsolutePath(), context);
             // Add the global redeploy resources (which are never deleted) at
             // the end so they don't interfere with the deletion process
             addGlobalRedeployResources(deployedApp);
         }
-
+        // 9. 记录部署完成
         deployed.put(cn.getName(), deployedApp);
 
         if (log.isInfoEnabled()) {
@@ -1568,6 +1592,7 @@ public class HostConfig implements LifecycleListener {
         }
 
         try {
+            // JMX相关
             ObjectName hostON = host.getObjectName();
             oname = new ObjectName(hostON.getDomain() + ":type=Deployer,host=" + host.getName());
             Registry.getRegistry(null, null).registerComponent(this, oname, this.getClass().getName());
@@ -1582,6 +1607,7 @@ public class HostConfig implements LifecycleListener {
         }
 
         if (host.getDeployOnStartup()) {
+            // 部署应用
             deployApps();
         }
     }

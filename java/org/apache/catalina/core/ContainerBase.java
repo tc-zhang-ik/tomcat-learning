@@ -868,16 +868,19 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
         // Start our subordinate components, if any
         logger = null;
         getLogger();
+        // 如果配置了集群组件则启动
         Cluster cluster = getClusterInternal();
         if (cluster instanceof Lifecycle) {
             ((Lifecycle) cluster).start();
         }
+        // 如果配置了Realm组件则启动
         Realm realm = getRealmInternal();
         if (realm instanceof Lifecycle) {
             ((Lifecycle) realm).start();
         }
 
         // Start our child containers, if any
+        // 通过线程池启动子容器
         Container children[] = findChildren();
         List<Future<Void>> results = new ArrayList<>();
         for (Container child : children) {
@@ -904,13 +907,15 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
         }
 
         // Start the Valves in our pipeline (including the basic), if any
+        // 启动pipeline
         if (pipeline instanceof Lifecycle) {
             ((Lifecycle) pipeline).start();
         }
-
+        // 设置状态为STARTING
         setState(LifecycleState.STARTING);
 
         // Start our thread
+        // 启动ContainerBackgroundProcessor线程，
         threadStart();
     }
 
@@ -1079,7 +1084,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
         if (!getState().isAvailable()) {
             return;
         }
-
+        // 调用cluster的backgroundProcess方法
         Cluster cluster = getClusterInternal();
         if (cluster != null) {
             try {
@@ -1088,6 +1093,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
                 log.warn(sm.getString("containerBase.backgroundProcess.cluster", cluster), e);
             }
         }
+        // 调用realm的backgroundProcess方法
         Realm realm = getRealmInternal();
         if (realm != null) {
             try {
@@ -1096,6 +1102,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
                 log.warn(sm.getString("containerBase.backgroundProcess.realm", realm), e);
             }
         }
+        // 调用pipeline的backgroundProcess方法
         Valve current = pipeline.getFirst();
         while (current != null) {
             try {
@@ -1330,7 +1337,20 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
                     // is performed under the web app's class loader
                     originalClassLoader = ((Context) container).bind(false, null);
                 }
+                // 具体处理逻辑，不同的容器实现不同
+                /*
+                *   (1) StandardContext
+                        清理过期的 HTTP 会话。
+                        检查是否有新的类文件需要重新加载（热部署）。
+                        执行与 Servlet 相关的后台任务。
+                    (2) StandardHost
+                        检查是否有新的 Web 应用需要部署。
+                        检查是否有 Web 应用需要卸载。
+                    (3) StandardEngine
+                        通常不直接执行任务，但会递归调用其子容器（如 Host）的 backgroundProcess() 方法。
+                * */
                 container.backgroundProcess();
+                // 递归调用子容器的backgroundProcess方法
                 Container[] children = container.findChildren();
                 for (Container child : children) {
                     if (child.getBackgroundProcessorDelay() <= 0) {

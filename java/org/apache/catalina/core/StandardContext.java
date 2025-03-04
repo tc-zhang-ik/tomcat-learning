@@ -4662,26 +4662,31 @@ public class StandardContext extends ContainerBase implements Context, Notificat
                     new Notification("j2ee.state.starting", this.getObjectName(), sequenceNumber.getAndIncrement());
             broadcaster.sendNotification(notification);
         }
-
+        // 设置配置状态为false，并触发属性变更事件
         setConfigured(false);
         boolean ok = true;
 
         // Currently this is effectively a NO-OP but needs to be called to
         // ensure the NamingResources follows the correct lifecycle
+        // 启动命名资源，比如我们在context.xml配置的JNDI之类的资源
         if (namingResources != null) {
             namingResources.start();
         }
 
         // Post work directory
+        // 创建工作目录，一般为$tomcat_home/work/engine名（一般为catalina）/host名（如果是本机，那么就是localhost）
+        // context的baseName（通常为path.substring(1)+"##"+版本）
         postWorkDirectory();
 
         // Add missing components as necessary
+        // 如果WebResourceRoot（一个资源的复合类，用于维护各种资源）为空，那么就new出一个来
         if (getResources() == null) { // (1) Required by Loader
             if (log.isTraceEnabled()) {
                 log.trace("Configuring default Resources");
             }
 
             try {
+                // StandardRoot是WebResourceRoot子类
                 setResources(new StandardRoot(this));
             } catch (IllegalArgumentException e) {
                 log.error(sm.getString("standardContext.resourcesInit"), e);
@@ -4689,9 +4694,13 @@ public class StandardContext extends ContainerBase implements Context, Notificat
             }
         }
         if (ok) {
+            //启动注册资源到mbeanserver中，并判断是否需要添加
+            //WEB-INF/classas/META-INF/resources下的资源，并为其挂在到根路径下
+            //这样你存在WEB-INF/classas/META-INF/resources下的资源可以
+            //挂载到根路径下。这个webResourceRoot用于后面类加载器设置类加载路径
             resourcesStart();
         }
-
+        // 如果没有设置类加载器，那么创建一个专属于context的类加载器
         if (getLoader() == null) {
             WebappLoader webappLoader = new WebappLoader();
             webappLoader.setDelegate(getDelegate());
@@ -4699,6 +4708,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         }
 
         // An explicit cookie processor hasn't been specified; use the default
+        // 使用默认的 Rfc6265CookieProcessor
         if (cookieProcessor == null) {
             cookieProcessor = new Rfc6265CookieProcessor();
         }

@@ -98,11 +98,14 @@ public final class Mapper {
      * @param host    Host object
      */
     public synchronized void addHost(String name, String[] aliases, Host host) {
+        //1.重新命名hostName，如果存在*.开头的hostName，将其*去掉
         name = renameWildcardHost(name);
+        //2.添加host到hosts数组中
         MappedHost[] newHosts = new MappedHost[hosts.length + 1];
         MappedHost newHost = new MappedHost(name, host);
         if (insertMap(hosts, newHosts, newHost)) {
             hosts = newHosts;
+            // 更新defaultHost
             if (newHost.name.equals(defaultHostName)) {
                 defaultHost = newHost;
             }
@@ -110,6 +113,7 @@ public final class Mapper {
                 log.debug(sm.getString("mapper.addHost.success", name));
             }
         } else {
+            //3.如果hosts数组中已经存在该hostName，则将其赋值给newHost
             MappedHost duplicate = hosts[find(hosts, name)];
             if (duplicate.object == host) {
                 // The host is already registered in the mapper.
@@ -125,6 +129,7 @@ public final class Mapper {
                 return;
             }
         }
+        //4.添加aliases到newHost中
         List<MappedHost> newAliases = new ArrayList<>(aliases.length);
         for (String alias : aliases) {
             alias = renameWildcardHost(alias);
@@ -255,10 +260,12 @@ public final class Mapper {
             String[] welcomeResources, WebResourceRoot resources, Collection<WrapperMappingInfo> wrappers) {
 
         hostName = renameWildcardHost(hostName);
-
+        //1. 查找hostName对应的host
         MappedHost mappedHost = exactFind(hosts, hostName);
         if (mappedHost == null) {
+            // 2. 创建host，添加到hosts中
             addHost(hostName, new String[0], host);
+            //3. 重新查找hostName
             mappedHost = exactFind(hosts, hostName);
             if (mappedHost == null) {
                 log.error(sm.getString("mapper.addContext.noHost", hostName));
@@ -269,16 +276,21 @@ public final class Mapper {
             log.error(sm.getString("mapper.addContext.hostIsAlias", hostName));
             return;
         }
+        //4. 统计path中/的个数
         int slashCount = slashCount(path);
+        //5. 创建ContextVersion
         synchronized (mappedHost) {
+            //5.1 创建ContextVersion
             ContextVersion newContextVersion =
                     new ContextVersion(version, path, slashCount, context, resources, welcomeResources);
+            //5.2 将wrappers添加到newContextVersion中
             if (wrappers != null) {
                 addWrappers(newContextVersion, wrappers);
             }
-
+            //5.3 根据path去mappedHost中的contextList查找mappedContext
             ContextList contextList = mappedHost.contextList;
             MappedContext mappedContext = exactFind(contextList.contexts, path);
+            //5.4 如果mappedContext为null，则创建mappedContext，并将则创建mappedContext添加到contextList中
             if (mappedContext == null) {
                 mappedContext = new MappedContext(path, newContextVersion);
                 ContextList newContextList = contextList.addContext(mappedContext, slashCount);
@@ -287,6 +299,7 @@ public final class Mapper {
                     contextObjectToContextVersionMap.put(context, newContextVersion);
                 }
             } else {
+                //5.5 如果mappedContext不为null，则将newContextVersion添加到contextVersions中
                 ContextVersion[] contextVersions = mappedContext.versions;
                 ContextVersion[] newContextVersions = new ContextVersion[contextVersions.length + 1];
                 if (insertMap(contextVersions, newContextVersions, newContextVersion)) {
@@ -651,7 +664,8 @@ public final class Mapper {
      * @throws IOException if the buffers are too small to hold the results of the mapping.
      */
     public void map(MessageBytes host, MessageBytes uri, String version, MappingData mappingData) throws IOException {
-
+        // 根据指定的host和uri，将结果映射到mappingData中
+        // 1. 检查host是否为null，如果是，则将host设置为默认的host
         if (host.isNull()) {
             String defaultHostName = this.defaultHostName;
             if (defaultHostName == null) {
@@ -706,6 +720,7 @@ public final class Mapper {
 
         // Virtual host mapping
         MappedHost[] hosts = this.hosts;
+        // 根据host在hosts中查找，如果找到，则返回该MappedHost，否则返回null
         MappedHost mappedHost = exactFindIgnoreCase(hosts, host);
         if (mappedHost == null) {
             // Note: Internally, the Mapper does not use the leading * on a
@@ -728,6 +743,7 @@ public final class Mapper {
                 }
             }
         }
+        // 设置mappingData的host属性
         mappingData.host = mappedHost.object;
 
         if (uri.isNull()) {
@@ -750,6 +766,7 @@ public final class Mapper {
         int length = -1;
         boolean found = false;
         MappedContext context = null;
+        // 从contexts中查找，如果找到，则返回该MappedContext，否则返回null
         while (pos >= 0) {
             context = contexts[pos];
             if (uri.startsWith(context.name)) {
@@ -782,12 +799,13 @@ public final class Mapper {
         if (context == null) {
             return;
         }
-
+        // 设置mappingData的contextPath属性
         mappingData.contextPath.setString(context.name);
 
         ContextVersion contextVersion = null;
         ContextVersion[] contextVersions = context.versions;
         final int versionCount = contextVersions.length;
+        // 如果contextVersion的数量大于1，则将contextVersion数组转换为Context数组，并设置mappingData的contexts属性
         if (versionCount > 1) {
             Context[] contextObjects = new Context[contextVersions.length];
             for (int i = 0; i < contextObjects.length; i++) {
@@ -803,6 +821,7 @@ public final class Mapper {
             // The versions array is known to contain at least one element
             contextVersion = contextVersions[versionCount - 1];
         }
+        // 设置mappingData的context属性
         mappingData.context = contextVersion.object;
         mappingData.contextSlashCount = contextVersion.slashCount;
 

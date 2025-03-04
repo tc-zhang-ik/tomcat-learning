@@ -277,8 +277,11 @@ public class Catalina {
     protected Digester createStartDigester() {
         long t1 = System.currentTimeMillis();
         // Initialize the digester
+        // 初始化Digester
         Digester digester = new Digester();
+        // 禁用 XML 验证（如 DTD 或 Schema 验证）。Tomcat 不需要验证 XML 文件是否符合特定的模式。
         digester.setValidating(false);
+        // 启用规则验证，确保 Digester 的规则定义是正确的。
         digester.setRulesValidation(true);
         Map<Class<?>,List<String>> fakeAttributes = new HashMap<>();
         // Ignore className on all elements
@@ -293,40 +296,54 @@ public class Catalina {
         List<String> connectorAttrs = new ArrayList<>();
         connectorAttrs.add("portOffset");
         fakeAttributes.put(Connector.class, connectorAttrs);
+        // 当Digester解析到XML元素中的这些属性时，会自动忽略而不是抛出异常，保证了配置文件的兼容性
         digester.setFakeAttributes(fakeAttributes);
+        // 指定 Digester 使用当前线程的上下文类加载器来加载类。
         digester.setUseContextClassLoader(true);
 
         // Configure the actions we will be using
+        // 创建Server对象
         digester.addObjectCreate("Server", "org.apache.catalina.core.StandardServer", "className");
+        // 注入Server标签的属性，如 port shutdown
         digester.addSetProperties("Server");
         digester.addSetNext("Server", "setServer", "org.apache.catalina.Server");
 
+        // 解析 <GlobalNamingResources> 元素，创建 NamingResourcesImpl 对象，并将其设置到 Server 对象中。
         digester.addObjectCreate("Server/GlobalNamingResources", "org.apache.catalina.deploy.NamingResourcesImpl");
         digester.addSetProperties("Server/GlobalNamingResources");
         digester.addSetNext("Server/GlobalNamingResources", "setGlobalNamingResources",
                 "org.apache.catalina.deploy.NamingResourcesImpl");
 
+
+        //解析 <Listener> 元素，根据 className 属性动态创建监听器对象，并将其添加到 Server 对象中。
         digester.addObjectCreate("Server/Listener", null, // MUST be specified in the element
                 "className");
         digester.addSetProperties("Server/Listener");
         digester.addSetNext("Server/Listener", "addLifecycleListener", "org.apache.catalina.LifecycleListener");
 
+        //解析 <Service> 元素，创建 StandardService 对象，并将其添加到 Server 对象中。
         digester.addObjectCreate("Server/Service", "org.apache.catalina.core.StandardService", "className");
         digester.addSetProperties("Server/Service");
         digester.addSetNext("Server/Service", "addService", "org.apache.catalina.Service");
 
+        // 解析 <Listener> 元素，根据 className 属性动态创建监听器对象，并将其添加到 Server 对象中。
         digester.addObjectCreate("Server/Service/Listener", null, // MUST be specified in the element
                 "className");
         digester.addSetProperties("Server/Service/Listener");
         digester.addSetNext("Server/Service/Listener", "addLifecycleListener", "org.apache.catalina.LifecycleListener");
 
-        // Executor
+        // 解析 <Executor> 元素，创建线程池对象，并将其添加到 Service 对象中。
         digester.addObjectCreate("Server/Service/Executor", "org.apache.catalina.core.StandardThreadExecutor",
                 "className");
         digester.addSetProperties("Server/Service/Executor");
 
         digester.addSetNext("Server/Service/Executor", "addExecutor", "org.apache.catalina.Executor");
 
+        /*
+        *   ConnectorCreateRule : 自定义规则，用于创建 Connector 对象。
+            SetAllPropertiesRule : 设置 <Connector> 元素的所有属性，但忽略 executor 和 sslImplementationName。
+            addConnector : 将 Connector 对象添加到 Service 对象中。
+        * */
         digester.addRule("Server/Service/Connector", new ConnectorCreateRule());
         digester.addRule("Server/Service/Connector",
                 new SetAllPropertiesRule(new String[] { "executor", "sslImplementationName" }));
@@ -334,6 +351,7 @@ public class Catalina {
 
         digester.addRule("Server/Service/Connector", new AddPortOffsetRule());
 
+        //解析 <SSLHostConfig> 和 <Certificate> 元素，分别创建对应的对象并设置属性。
         digester.addObjectCreate("Server/Service/Connector/SSLHostConfig", "org.apache.tomcat.util.net.SSLHostConfig");
         digester.addSetProperties("Server/Service/Connector/SSLHostConfig");
         digester.addSetNext("Server/Service/Connector/SSLHostConfig", "addSslHostConfig",
@@ -371,8 +389,11 @@ public class Catalina {
 
         // Add RuleSets for nested elements
         digester.addRuleSet(new NamingRuleSet("Server/GlobalNamingResources/"));
+        // 解析 <Engine> 元素，创建 Engine 对象，并将其添加到 Service 对象中，具体的逻辑在EngineRuleSet的addRuleInstances方法中。
         digester.addRuleSet(new EngineRuleSet("Server/Service/"));
+        // 解析 <Host> 元素，创建 Host 对象，并将其添加到 Engine 对象中，具体的逻辑在HostRuleSet的addRuleInstances方法中。
         digester.addRuleSet(new HostRuleSet("Server/Service/Engine/"));
+        // 解析 <Context> 元素，创建 Context 对象，并将其添加到 Host 对象中，具体的逻辑在ContextRuleSet的addRuleInstances方法中。
         digester.addRuleSet(new ContextRuleSet("Server/Service/Engine/Host/"));
         addClusterRuleSet(digester, "Server/Service/Engine/Host/Cluster/");
         digester.addRuleSet(new NamingRuleSet("Server/Service/Engine/Host/Context/"));
@@ -510,6 +531,7 @@ public class Catalina {
         initNaming();
 
         // Create and execute our Digester
+        // 创建解析规则,解析 Server.xml 文件
         Digester digester = createStartDigester();
 
         InputSource inputSource = null;
@@ -565,6 +587,8 @@ public class Catalina {
 
             try {
                 inputSource.setByteStream(inputStream);
+                // 将当前Catalina对象压入栈中，当解析到Server对象时，会赋值给Catalina的server属性，
+                // 而后逐渐将server对象及其子对象赋值
                 digester.push(this);
                 digester.parse(inputSource);
             } catch (SAXParseException spe) {

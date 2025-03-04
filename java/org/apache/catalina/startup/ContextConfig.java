@@ -283,6 +283,7 @@ public class ContextConfig implements LifecycleListener {
 
         // Process the event that has occurred
         if (event.getType().equals(Lifecycle.CONFIGURE_START_EVENT)) {
+            // configure_start事件
             configureStart();
         } else if (event.getType().equals(Lifecycle.BEFORE_START_EVENT)) {
             beforeStart();
@@ -294,6 +295,7 @@ public class ContextConfig implements LifecycleListener {
         } else if (event.getType().equals(Lifecycle.CONFIGURE_STOP_EVENT)) {
             configureStop();
         } else if (event.getType().equals(Lifecycle.AFTER_INIT_EVENT)) {
+            // after_init 生命周期事件
             init();
         } else if (event.getType().equals(Lifecycle.AFTER_DESTROY_EVENT)) {
             destroy();
@@ -428,15 +430,18 @@ public class ContextConfig implements LifecycleListener {
         String defaultContextXml = null;
 
         // Open the default context.xml file, if it exists
+        // 获取context.xml文件路径
         if (context instanceof StandardContext) {
             defaultContextXml = ((StandardContext) context).getDefaultContextXml();
         }
         // set the default if we don't have any overrides
+        // 设置为默认的路径conf/context.xml
         if (defaultContextXml == null) {
             defaultContextXml = Constants.DefaultContextXml;
         }
 
         if (!context.getOverride()) {
+            // 1.默认使用全局配置 catalina.base/conf/context.xml
             File defaultContextFile = new File(defaultContextXml);
             if (!defaultContextFile.isAbsolute()) {
                 defaultContextFile = new File(context.getCatalinaBase(), defaultContextXml);
@@ -444,12 +449,13 @@ public class ContextConfig implements LifecycleListener {
             if (defaultContextFile.exists()) {
                 try {
                     URL defaultContextUrl = defaultContextFile.toURI().toURL();
+                    // 解析context.xml文件
                     processContextConfig(digester, defaultContextUrl);
                 } catch (MalformedURLException e) {
                     log.error(sm.getString("contextConfig.badUrl", defaultContextFile), e);
                 }
             }
-
+            //2. 主机级配置（通常为conf/Catalina/[host]/context.xml）
             File hostContextFile = new File(getHostConfigBase(), Constants.HostContextXml);
             if (hostContextFile.exists()) {
                 try {
@@ -460,7 +466,7 @@ public class ContextConfig implements LifecycleListener {
                 }
             }
         }
-
+        //3.应用级配置（通常为WEB-INF/context.xml）
         if (context.getConfigFile() != null) {
             processContextConfig(digester, context.getConfigFile());
         }
@@ -484,6 +490,7 @@ public class ContextConfig implements LifecycleListener {
         InputStream stream = null;
 
         try {
+            //1. 准备输入源
             source = new InputSource(contextXml.toString());
             URLConnection xmlConn = contextXml.openConnection();
             xmlConn.setUseCaches(false);
@@ -497,13 +504,17 @@ public class ContextConfig implements LifecycleListener {
         }
 
         try {
+            //2. 配置解析器
             source.setByteStream(stream);
             digester.setClassLoader(this.getClass().getClassLoader());
             digester.setUseContextClassLoader(false);
+            //3. 设置解析上下文
             digester.push(context.getParent());
             digester.push(context);
+            //4. 配置错误处理器
             XmlErrorHandler errorHandler = new XmlErrorHandler();
             digester.setErrorHandler(errorHandler);
+            //5. 执行xml解析
             digester.parse(source);
             if (errorHandler.getWarnings().size() > 0 || errorHandler.getErrors().size() > 0) {
                 errorHandler.logFindings(log, contextXml.toString());
@@ -707,7 +718,7 @@ public class ContextConfig implements LifecycleListener {
         }
         context.setConfigured(false);
         ok = true;
-
+        // 通过 digester 解析 context.xml
         contextConfig(contextDigester);
     }
 
@@ -741,7 +752,7 @@ public class ContextConfig implements LifecycleListener {
             log.trace(sm.getString("contextConfig.xmlSettings", context.getName(),
                     Boolean.valueOf(context.getXmlValidation()), Boolean.valueOf(context.getXmlNamespaceAware())));
         }
-
+        // 解析web.xml
         webConfig();
         context.addServletContainerInitializer(new JasperInitializer(), null);
 

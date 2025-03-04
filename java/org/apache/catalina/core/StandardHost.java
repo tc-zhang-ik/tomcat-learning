@@ -769,6 +769,7 @@ public class StandardHost extends ContainerBase implements Host {
     protected void startInternal() throws LifecycleException {
 
         // Set error report valve
+        // 向host的pipeline中添加 ErrorReportValve
         String errorValve = getErrorReportValveClass();
         if ((errorValve != null) && (!errorValve.equals(""))) {
             try {

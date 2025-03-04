@@ -821,18 +821,24 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         // Note although the cache is global, if there are multiple Servers
         // present in the JVM (may happen when embedding) then the same cache
         // will be registered under multiple names
+        // StringCache 通过维护一个字符串缓存池，避免重复创建相同的字符串对象。
+        // 它支持字节和字符的缓存（byteEnabled 和 charEnabled），并且可以通过系统属性进行配置。
         onameStringCache = register(new StringCache(), "type=StringCache");
 
         // Register the MBeanFactory
+        // 注册 MBeanFactory
         MBeanFactory factory = new MBeanFactory();
         factory.setContainer(this);
         onameMBeanFactory = register(factory, "type=MBeanFactory");
 
         // Register the naming resources
+        // NamingResources 接口，用于管理 Tomcat 容器（例如 Server、Context）中的命名资源（Naming Resources）。
+        // 这些资源通常与 JNDI（Java Naming and Directory Interface）相关，用于在应用程序中查找和绑定资源（如数据源、环境变量等）。
         globalNamingResources.init();
 
         // Populate the extension validator with JARs from common and shared
         // class loaders
+        // 用 common 和 shared 类加载器的 jars 填充 ExtensionValidator
         if (getCatalina() != null) {
             ClassLoader cl = getCatalina().getParentClassLoader();
             // Walk the class loader hierarchy. Stop at the system class loader.
@@ -859,6 +865,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         // Initialize our defined Services
         synchronized (servicesLock) {
             for (Service service : services) {
+                // 初始化 StandardService
                 service.init();
             }
         }

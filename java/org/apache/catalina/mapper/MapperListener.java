@@ -90,23 +90,24 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
 
     @Override
     public void startInternal() throws LifecycleException {
-
+        // 1.将当前mapperListener的状态设置为STARTING
         setState(LifecycleState.STARTING);
-
+        // 2.Service的下一层即Engine组件
         Engine engine = service.getContainer();
         if (engine == null) {
             return;
         }
-
+        // 3.查找默认的host
         findDefaultHost();
-
+        // 4.将当前mapperListener添加到Engine和其子组件中
         addListeners(engine);
-
+        // 5.Engine的子组件即Host
         Container[] conHosts = engine.findChildren();
         for (Container conHost : conHosts) {
             Host host = (Host) conHost;
             if (!LifecycleState.NEW.equals(host.getState())) {
                 // Registering the host will register the context and wrappers
+                // 6.
                 registerHost(host);
             }
         }
@@ -252,22 +253,24 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
     // ------------------------------------------------------ Protected Methods
 
     private void findDefaultHost() {
-
+        // 获取默认的Host，Service->Engine->Host
         Engine engine = service.getContainer();
+        // defaultHost在server.xml中Engine标签的defaultHost属性指定
         String defaultHost = engine.getDefaultHost();
 
         boolean found = false;
 
         if (defaultHost != null && defaultHost.length() > 0) {
             Container[] containers = engine.findChildren();
-
+            //根据defaultHost的值去查找Host
             for (Container container : containers) {
                 Host host = (Host) container;
                 if (defaultHost.equalsIgnoreCase(host.getName())) {
+                    //找到对应的Host
                     found = true;
                     break;
                 }
-
+                //或者根据alias找到对应的Host
                 String[] aliases = host.findAliases();
                 for (String alias : aliases) {
                     if (defaultHost.equalsIgnoreCase(alias)) {
@@ -277,7 +280,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
                 }
             }
         }
-
+        //  设置默认的Host
         if (found) {
             mapper.setDefaultHostName(defaultHost);
         } else {
@@ -292,8 +295,11 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
     private void registerHost(Host host) {
 
         String[] aliases = host.findAliases();
+        // 将Host注册到Mapper中（添加到hosts中）
         mapper.addHost(host.getName(), aliases, host);
-
+        // Host的下一层是Context
+        // 遍历Context，将Context注册到Mapper中（添加到contexts中）
+        // 遍历Wrapper，将Wrapper注册到Mapper中（添加到wrappers中）
         for (Container container : host.findChildren()) {
             if (container.getState().isAvailable()) {
                 registerContext((Context) container);
@@ -301,6 +307,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
         }
 
         // Default host may have changed
+        // 刷新defaultHost
         findDefaultHost();
 
         if (log.isDebugEnabled()) {
@@ -358,7 +365,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
      * Register context.
      */
     private void registerContext(Context context) {
-
+        // 1.获取Context的路径
         String contextPath = context.getPath();
         if ("/".equals(contextPath)) {
             contextPath = "";
@@ -368,15 +375,16 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
         WebResourceRoot resources = context.getResources();
         String[] welcomeFiles = context.findWelcomeFiles();
         List<WrapperMappingInfo> wrappers = new ArrayList<>();
-
+        // Context的下一层是Wrapper
         for (Container container : context.findChildren()) {
+            // 将wrapper添加到wrappers中
             prepareWrapperMappingInfo(context, (Wrapper) container, wrappers);
 
             if (log.isDebugEnabled()) {
                 log.debug(sm.getString("mapperListener.registerWrapper", container.getName(), contextPath, service));
             }
         }
-
+        // 添加ContextVersion
         mapper.addContextVersion(host.getName(), host, contextPath, context.getWebappVersion(), context, welcomeFiles,
                 resources, wrappers);
 
