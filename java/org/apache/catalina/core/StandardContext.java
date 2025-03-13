@@ -4622,6 +4622,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         for (ArrayList<Wrapper> list : map.values()) {
             for (Wrapper wrapper : list) {
                 try {
+                    // 加载并初始化此 Servlet 的实例
                     wrapper.load();
                 } catch (ServletException e) {
                     getLogger().error(
@@ -4708,15 +4709,17 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         }
 
         // An explicit cookie processor hasn't been specified; use the default
-        // 使用默认的 Rfc6265CookieProcessor
+        // 如果未指定 Cookie 处理器，则使用默认的 Rfc6265CookieProcessor。
         if (cookieProcessor == null) {
             cookieProcessor = new Rfc6265CookieProcessor();
         }
 
         // Initialize character set mapper
+        // 初始化字符集映射器。
         getCharsetMapper();
 
         // Validate required extensions
+        // 验证应用程序所需的扩展依赖项。
         boolean dependencyCheck = true;
         try {
             dependencyCheck = ExtensionValidator.validateApplication(getResources(), this);
@@ -4731,11 +4734,12 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         }
 
         // Reading the "catalina.useNaming" environment variable
+        // 检查是否启用了命名功能（catalina.useNaming 环境变量）
         String useNamingProperty = System.getProperty("catalina.useNaming");
         if ((useNamingProperty != null) && (useNamingProperty.equals("false"))) {
             useNaming = false;
         }
-
+        // 如果启用了命名功能且未设置 NamingContextListener，则创建并添加一个。
         if (ok && isUseNaming()) {
             if (getNamingContextListener() == null) {
                 NamingContextListener ncl = new NamingContextListener();
@@ -4753,11 +4757,13 @@ public class StandardContext extends ContainerBase implements Context, Notificat
 
 
         // Binding thread
+        // 绑定当前线程的上下文类加载器。
         ClassLoader oldCCL = bindThread();
 
         try {
             if (ok) {
                 // Start our subordinate components, if any
+                // 启动子组件（如类加载器）。
                 Loader loader = getLoader();
                 if (loader instanceof Lifecycle) {
                     ((Lifecycle) loader).start();
@@ -4765,6 +4771,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
 
                 // since the loader just started, the webapp classloader is now
                 // created.
+                // 配置 WebappClassLoader 的相关属性。
                 if (loader.getClassLoader() instanceof WebappClassLoaderBase) {
                     WebappClassLoaderBase cl = (WebappClassLoaderBase) loader.getClassLoader();
                     cl.setClearReferencesRmiTargets(getClearReferencesRmiTargets());
@@ -4778,14 +4785,16 @@ public class StandardContext extends ContainerBase implements Context, Notificat
 
                 // By calling unbindThread and bindThread in a row, we setup the
                 // current Thread CCL to be the webapp classloader
+                // 重新绑定线程以设置当前线程的上下文类加载器为 WebappClassLoader。
                 unbindThread(oldCCL);
                 oldCCL = bindThread();
 
                 // Initialize logger again. Other components might have used it
                 // too early, so it should be reset.
+                // 重新初始化日志记录器。
                 logger = null;
                 getLogger();
-
+                // 启动 Realm 并将其 CredentialHandler 注册到 ServletContext 中。
                 Realm realm = getRealmInternal();
                 if (null != realm) {
                     if (realm instanceof Lifecycle) {
@@ -4811,9 +4820,11 @@ public class StandardContext extends ContainerBase implements Context, Notificat
                 }
 
                 // Notify our interested LifecycleListeners
+                // 通知所有感兴趣的 LifecycleListener。
                 fireLifecycleEvent(CONFIGURE_START_EVENT, null);
 
                 // Start our child containers, if not already started
+                // 启动子容器。
                 for (Container child : findChildren()) {
                     if (!child.getState().isAvailable()) {
                         child.start();
@@ -4822,11 +4833,13 @@ public class StandardContext extends ContainerBase implements Context, Notificat
 
                 // Start the Valves in our pipeline (including the basic),
                 // if any
+                // 启动管道中的 Value
                 if (pipeline instanceof Lifecycle) {
                     ((Lifecycle) pipeline).start();
                 }
 
                 // Acquire clustered manager
+                // 获取或创建集群管理器。
                 Manager contextManager = null;
                 Manager manager = getManager();
                 if (manager == null) {
@@ -4847,26 +4860,28 @@ public class StandardContext extends ContainerBase implements Context, Notificat
                 }
 
                 // Configure default manager if none was specified
+                // 配置默认管理器。
                 if (contextManager != null) {
                     if (log.isDebugEnabled()) {
                         log.debug(sm.getString("standardContext.manager", contextManager.getClass().getName()));
                     }
                     setManager(contextManager);
                 }
-
+                // 如果启用了集群功能，则将管理器注册到集群中。
                 if (manager != null && (getCluster() != null) && distributable) {
                     // let the cluster know that there is a context that is distributable
                     // and that it has its own manager
                     getCluster().registerManager(manager);
                 }
             }
-
+            // 检查配置状态。
             if (!getConfigured()) {
                 log.error(sm.getString("standardContext.configurationFail"));
                 ok = false;
             }
 
             // We put the resources into the servlet context
+            // 将资源和实例管理器注册到 ServletContext 中。
             if (ok) {
                 getServletContext().setAttribute(Globals.RESOURCES_ATTR, getResources());
 
@@ -4884,6 +4899,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
                 InstanceManagerBindings.bind(getLoader().getClassLoader(), getInstanceManager());
 
                 // Create context attributes that will be required
+                // 创建必要的上下文属性。
                 getServletContext().setAttribute(JarScanner.class.getName(), getJarScanner());
 
                 // Make the version info available
@@ -4891,9 +4907,11 @@ public class StandardContext extends ContainerBase implements Context, Notificat
             }
 
             // Set up the context init params
+            // 合并上下文初始化参数。
             mergeParameters();
 
             // Call ServletContainerInitializers
+            // 调用 ServletContainerInitializers。
             for (Map.Entry<ServletContainerInitializer,Set<Class<?>>> entry : initializers.entrySet()) {
                 try {
                     entry.getKey().onStartup(entry.getValue(), getServletContext());
@@ -4905,6 +4923,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
             }
 
             // Configure and call application event listeners
+            // 配置并调用应用程序事件监听器。
             if (ok) {
                 if (!listenerStart()) {
                     log.error(sm.getString("standardContext.listenerFail"));
@@ -4915,12 +4934,14 @@ public class StandardContext extends ContainerBase implements Context, Notificat
             // Check constraints for uncovered HTTP methods
             // Needs to be after SCIs and listeners as they may programmatically
             // change constraints
+            // 检查未覆盖的 HTTP 方法的约束。
             if (ok) {
                 checkConstraintsForUncoveredMethods(findConstraints());
             }
 
             try {
                 // Start manager
+                // 启动管理器。
                 Manager manager = getManager();
                 if (manager instanceof Lifecycle) {
                     ((Lifecycle) manager).start();
@@ -4931,6 +4952,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
             }
 
             // Configure and call application filters
+            // 配置并调用应用程序过滤器。
             if (ok) {
                 if (!filterStart()) {
                     log.error(sm.getString("standardContext.filterFail"));
@@ -4939,6 +4961,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
             }
 
             // Load and initialize all "load on startup" servlets
+            // 加载并初始化所有标记为 "load on startup" 的 Servlet。
             if (ok) {
                 if (!loadOnStartup(findChildren())) {
                     log.error(sm.getString("standardContext.servletFail"));
@@ -4947,13 +4970,16 @@ public class StandardContext extends ContainerBase implements Context, Notificat
             }
 
             // Start ContainerBackgroundProcessor thread
+            // 启动后台处理器线程。
             super.threadStart();
         } finally {
             // Unbinding thread
+            // 解绑线程。
             unbindThread(oldCCL);
         }
 
         // Set available status depending upon startup success
+        // 根据启动结果设置组件状态。
         if (ok) {
             if (log.isTraceEnabled()) {
                 log.trace("Starting completed");
@@ -4965,6 +4991,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         startTime = System.currentTimeMillis();
 
         // Send j2ee.state.running notification
+        // 发送 j2ee.state.running 通知，表示组件已成功启动。
         if (ok && (this.getObjectName() != null)) {
             Notification notification =
                     new Notification("j2ee.state.running", this.getObjectName(), sequenceNumber.getAndIncrement());
@@ -4975,15 +5002,17 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         // some platforms these references may lock the JAR files. Since web
         // application start is likely to have read from lots of JARs, trigger
         // a clean-up now.
+        // 清理 WebResources 缓存的 JAR 文件引用。
         getResources().gc();
 
         // Reinitializing if something went wrong
+        // 如果启动失败，则重新初始化组件状态。
         if (!ok) {
             setState(LifecycleState.FAILED);
             // Send j2ee.object.failed notification
             if (this.getObjectName() != null) {
                 Notification notification =
-                        new Notification("j2ee.object.failed", this.getObjectName(), sequenceNumber.getAndIncrement());
+                        new Notification("     j2ee.object.failed", this.getObjectName(), sequenceNumber.getAndIncrement());
                 broadcaster.sendNotification(notification);
             }
         } else {

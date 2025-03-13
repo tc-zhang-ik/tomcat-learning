@@ -1284,6 +1284,7 @@ public abstract class AbstractEndpoint<S,U> {
                 sc.reset(socketWrapper, event);
             }
             Executor executor = getExecutor();
+            // 使用线程池执行 SocketProcessor 线程任务
             if (dispatch && executor != null) {
                 executor.execute(sc);
             } else {

@@ -955,6 +955,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
      */
     @Override
     public synchronized void load() throws ServletException {
+        // 加载Servlet实例
         instance = loadServlet();
 
         if (!instanceInitialized) {
@@ -1015,6 +1016,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
 
             InstanceManager instanceManager = ((StandardContext) getParent()).getInstanceManager();
             try {
+                // 反射创建 Servlet 对象实例
                 servlet = (Servlet) instanceManager.newInstance(servletClass);
             } catch (ClassCastException e) {
                 unavailable(null);
@@ -1057,7 +1059,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                 }
                 singleThreadModel = true;
             }
-
+            // 初始化 Servlet 对象
             initServlet(servlet);
 
             fireContainerEvent("load", this);
@@ -1106,6 +1108,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                     }
                 }
             } else {
+                // 执行 Servlet.init() 方法
                 servlet.init(facade);
             }
 

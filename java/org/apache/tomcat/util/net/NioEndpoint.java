@@ -191,11 +191,13 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
      */
     @Override
     public void bind() throws Exception {
+        // 初始化服务器套接字，设置必要的网络连接
         initServerSocket();
-
+        // 设置停止信号的计数器，确保服务能够优雅地停止
         setStopLatch(new CountDownLatch(1));
 
         // Initialize SSL if needed
+        // 如果需要，初始化 SSL 配置
         initialiseSsl();
     }
 
@@ -214,7 +216,9 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
         } else {
             serverSock = ServerSocketChannel.open();
             socketProperties.setProperties(serverSock.socket());
+            // 创建一个 InetSocketAddress 对象，用于指定服务器监听的地址和端口
             InetSocketAddress addr = new InetSocketAddress(getAddress(), getPortWithOffset());
+            // 将 ServerSocket 绑定到指定的地址和端口，并设置最大连接等待队列的长度
             serverSock.socket().bind(addr,getAcceptCount());
         }
         serverSock.configureBlocking(true); //mimic APR behavior
@@ -407,6 +411,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
             socketWrapper.setReadTimeout(getConnectionTimeout());
             socketWrapper.setWriteTimeout(getConnectionTimeout());
             socketWrapper.setKeepAliveLeft(NioEndpoint.this.getMaxKeepAliveRequests());
+            // 将 socket 注册到 poller 队列处理
             poller.register(socketWrapper);
             return true;
         } catch (Throwable t) {
@@ -600,6 +605,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
          * @return <code>true</code> if some events were processed,
          *   <code>false</code> if queue was empty
          */
+        // poller 线程处理事件的方法
         public boolean events() {
             boolean result = false;
 
@@ -614,6 +620,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                     socketWrapper.close();
                 } else if (interestOps == OP_REGISTER) {
                     try {
+                        // 注册socket
                         sc.register(getSelector(), SelectionKey.OP_READ, socketWrapper);
                     } catch (Exception x) {
                         log.error(sm.getString("endpoint.nio.registerFail"), x);
@@ -745,6 +752,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                     // Attachment may be null if another thread has called
                     // cancelledKey()
                     if (socketWrapper != null) {
+                        // 处理 socket 请求的方法
                         processKey(sk, socketWrapper);
                     }
                 }
@@ -778,6 +786,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                                         socketWrapper.readBlocking = false;
                                         socketWrapper.readLock.notify();
                                     }
+                                    // 处理请求的方法
                                 } else if (!processSocket(socketWrapper, SocketEvent.OPEN_READ, true)) {
                                     closeSocket = true;
                                 }
@@ -1685,8 +1694,10 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                     SocketState state = SocketState.OPEN;
                     // Process the request from this socket
                     if (event == null) {
+
                         state = getHandler().process(socketWrapper, SocketEvent.OPEN_READ);
                     } else {
+                        // 调用处理器 ConnectionHandler 处理请求
                         state = getHandler().process(socketWrapper, event);
                     }
                     if (state == SocketState.CLOSED) {

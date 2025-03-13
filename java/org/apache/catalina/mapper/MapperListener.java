@@ -80,6 +80,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
      *
      * @param service The service this listener is associated with
      */
+    // StandardService 中存在成员变量 mapperListener，是直接通过 new MapperListener(this) 初始化的
     public MapperListener(Service service) {
         this.service = service;
         this.mapper = service.getMapper();
@@ -97,9 +98,9 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
         if (engine == null) {
             return;
         }
-        // 3.查找默认的host
+        // 3.查找并设置默认的host
         findDefaultHost();
-        // 4.将当前mapperListener添加到Engine和其子组件中
+        // 4.将当前 mapperListener 添加到Engine和其子组件中
         addListeners(engine);
         // 5.Engine的子组件即Host
         Container[] conHosts = engine.findChildren();
@@ -107,7 +108,7 @@ public class MapperListener extends LifecycleMBeanBase implements ContainerListe
             Host host = (Host) conHost;
             if (!LifecycleState.NEW.equals(host.getState())) {
                 // Registering the host will register the context and wrappers
-                // 6.
+                // 6. 注册 Host
                 registerHost(host);
             }
         }

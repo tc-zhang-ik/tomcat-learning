@@ -663,6 +663,7 @@ public final class Mapper {
      *
      * @throws IOException if the buffers are too small to hold the results of the mapping.
      */
+    // 通过 CoyoteAdapter 的 connector.getService().getMapper().map 调用
     public void map(MessageBytes host, MessageBytes uri, String version, MappingData mappingData) throws IOException {
         // 根据指定的host和uri，将结果映射到mappingData中
         // 1. 检查host是否为null，如果是，则将host设置为默认的host
@@ -676,6 +677,7 @@ public final class Mapper {
         }
         host.toChars();
         uri.toChars();
+        // 将获取到的 map 信息填充到 mappingData 中去
         internalMap(host.getCharChunk(), uri.getCharChunk(), version, mappingData);
     }
 
@@ -853,10 +855,12 @@ public final class Mapper {
         path.setOffset(servletPath);
 
         // Rule 1 -- Exact Match
+        // 精确匹配（Exact Match） → /hello
         MappedWrapper[] exactWrappers = contextVersion.exactWrappers;
         internalMapExactWrapper(exactWrappers, path, mappingData);
 
         // Rule 2 -- Prefix Match
+        // 最长前缀匹配（Longest Prefix Match） → /path/*
         boolean checkJspWelcomeFiles = false;
         MappedWrapper[] wildcardWrappers = contextVersion.wildcardWrappers;
         if (mappingData.wrapper == null) {
@@ -890,12 +894,14 @@ public final class Mapper {
         }
 
         // Rule 3 -- Extension Match
+        // 扩展名匹配（Extension Match） → *.jsp
         MappedWrapper[] extensionWrappers = contextVersion.extensionWrappers;
         if (mappingData.wrapper == null && !checkJspWelcomeFiles) {
             internalMapExtensionWrapper(extensionWrappers, path, mappingData, true);
         }
 
         // Rule 4 -- Welcome resources processing for servlets
+        // 欢迎资源处理（Welcome Resources Processing） → index.jsp
         if (mappingData.wrapper == null) {
             boolean checkWelcomeFiles = checkJspWelcomeFiles;
             if (!checkWelcomeFiles) {

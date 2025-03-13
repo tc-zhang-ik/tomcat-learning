@@ -308,10 +308,10 @@ public class HostConfig implements LifecycleListener {
         if (event.getType().equals(Lifecycle.PERIODIC_EVENT)) {
             check();
         } else if (event.getType().equals(Lifecycle.BEFORE_START_EVENT)) {
-            // 确保appBaseFile和docBaseFile是目录已经被创建
+            // 1. 确保appBaseFile和docBaseFile是目录已经被创建
             beforeStart();
         } else if (event.getType().equals(Lifecycle.START_EVENT)) {
-            //
+            //2. 部署应用
             start();
         } else if (event.getType().equals(Lifecycle.STOP_EVENT)) {
             stop();
@@ -465,6 +465,10 @@ public class HostConfig implements LifecycleListener {
         File appBase = host.getAppBaseFile();
         File configBase = host.getConfigBaseFile();
         // 过滤掉不合法的路径（deployIgnore属性）
+        /* <Host name="localhost" appBase="webapps"
+              autoDeploy="true" deployOnStartup="true"
+              deployIgnore=".*\.bak|.*\.tmp|logs|backups|.*_old\.war">
+        </Host>*/
         String[] filteredAppPaths = filterAppPaths(appBase.list());
         // Deploy XML descriptors from configBase
         // 部署一系列配置描述符文件（通常是.xml文件）
@@ -1148,7 +1152,7 @@ public class HostConfig implements LifecycleListener {
         boolean deployThisXML = isDeployThisXML(dir, cn);
 
         try {
-            // 解析server.xml 生成context对象
+            // 解析context.xml 生成 context 对象
             if (deployThisXML && xml.exists()) {
                 synchronized (digesterLock) {
                     try {

@@ -114,6 +114,7 @@ public class Acceptor<U> implements Runnable {
 
                 try {
                     //if we have reached max connections, wait
+                    // 如果达到了最大连接数，等待(NIO默认最大连接数是8192)
                     endpoint.countUpOrAwaitConnection();
 
                     // Endpoint might have been paused while waiting for latch
@@ -126,6 +127,7 @@ public class Acceptor<U> implements Runnable {
                     try {
                         // Accept the next incoming connection from the server
                         // socket
+                        // 等待接收客户端连接
                         socket = endpoint.serverSocketAccept();
                     } catch (Exception ioe) {
                         // We didn't get a socket
@@ -146,6 +148,7 @@ public class Acceptor<U> implements Runnable {
                     if (!stopCalled && !endpoint.isPaused()) {
                         // setSocketOptions() will hand the socket off to
                         // an appropriate processor if successful
+                        // setSocketOptions()将会将socket传递给合适的处理器
                         if (!endpoint.setSocketOptions(socket)) {
                             endpoint.closeSocket(socket);
                         }

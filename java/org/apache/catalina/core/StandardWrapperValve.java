@@ -165,6 +165,7 @@ final class StandardWrapperValve extends ValveBase {
                     if (request.isAsyncDispatching()) {
                         request.getAsyncContextInternal().doInternalDispatch();
                     } else {
+                        // 调用过滤器链
                         filterChain.doFilter(request.getRequest(), response.getResponse());
                     }
                 }

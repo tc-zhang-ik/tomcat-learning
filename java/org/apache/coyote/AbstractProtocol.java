@@ -921,6 +921,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                     }
                 }
                 if (processor == null) {
+                    // 当前协议创建一个Processor
                     processor = getProtocol().createProcessor();
                     register(processor);
                     if (getLog().isTraceEnabled()) {
@@ -932,6 +933,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
 
                 SocketState state = SocketState.CLOSED;
                 do {
+                    // 关键代码 处理器处理socket
                     state = processor.process(wrapper, status);
 
                     if (state == SocketState.UPGRADING) {

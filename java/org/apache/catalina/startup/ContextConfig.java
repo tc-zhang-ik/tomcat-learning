@@ -1025,6 +1025,7 @@ public class ContextConfig implements LifecycleListener {
         WebXml webXml = createWebXml();
 
         // Parse context level web.xml
+        // 解析上下文级别的web.xml
         InputSource contextWebXml = getContextWebXmlSource();
         if (!webXmlParser.parseWebXml(contextWebXml, webXml, false)) {
             ok = false;
@@ -1038,25 +1039,30 @@ public class ContextConfig implements LifecycleListener {
         // provided by the container. If any of the application JARs have a
         // web-fragment.xml it will be parsed at this point. web-fragment.xml
         // files are ignored for container provided JARs.
+        // 第1步：识别所有与应用程序一起打包的JAR以及容器提供的JAR。如果任何应用程序JAR包含web-fragment.xml，它将在这一点被解析。
         Map<String,WebXml> fragments = processJarsForWebFragments(webXml, webXmlParser);
 
         // Step 2. Order the fragments.
+        // 第2步：对片段进行排序。
         Set<WebXml> orderedFragments = null;
         orderedFragments = WebXml.orderWebFragments(webXml, fragments, sContext);
 
         // Step 3. Look for ServletContainerInitializer implementations
+        // 第3步：查找ServletContainerInitializer实现
         if (ok) {
             processServletContainerInitializers();
         }
 
         if (!webXml.isMetadataComplete() || typeInitializerMap.size() > 0) {
             // Steps 4 & 5.
+            // 第4步和第5步：处理/WEB-INF/classes中的注解和@HandlesTypes匹配。
             processClasses(webXml, orderedFragments);
         }
 
         if (!webXml.isMetadataComplete()) {
             // Step 6. Merge web-fragment.xml files into the main web.xml
             // file.
+            // 第6步：将web-fragment.xml文件合并到主web.xml文件中。
             if (ok) {
                 ok = webXml.merge(orderedFragments);
             }
@@ -1064,14 +1070,17 @@ public class ContextConfig implements LifecycleListener {
             // Step 7. Apply global defaults
             // Have to merge defaults before JSP conversion since defaults
             // provide JSP servlet definition.
+            // 第7步：应用全局默认值。
             webXml.merge(defaults);
 
             // Step 8. Convert explicitly mentioned jsps to servlets
+            // 第8步：将显式提到的JSP转换为servlet。
             if (ok) {
                 convertJsps(webXml);
             }
 
             // Step 9. Apply merged web.xml to Context
+            // 第9步：将合并后的web.xml应用到Context。
             if (ok) {
                 configureContext(webXml);
             }
@@ -1087,6 +1096,8 @@ public class ContextConfig implements LifecycleListener {
 
         // Always need to look for static resources
         // Step 10. Look for static resources packaged in JARs
+        // 总是需要查找静态资源。
+        // 第10步：查找打包在JAR中的静态资源。
         if (ok) {
             // Spec does not define an order.
             // Use ordered JARs followed by remaining JARs
@@ -1103,6 +1114,7 @@ public class ContextConfig implements LifecycleListener {
 
         // Step 11. Apply the ServletContainerInitializer config to the
         // context
+        // 第11步：将ServletContainerInitializer配置应用到Context。
         if (ok) {
             for (Map.Entry<ServletContainerInitializer,Set<Class<?>>> entry : initializerClassMap.entrySet()) {
                 if (entry.getValue().isEmpty()) {
@@ -1118,6 +1130,7 @@ public class ContextConfig implements LifecycleListener {
     protected void processClasses(WebXml webXml, Set<WebXml> orderedFragments) {
         // Step 4. Process /WEB-INF/classes for annotations and
         // @HandlesTypes matches
+        // 第4步：处理/WEB-INF/classes中的注解和@HandlesTypes匹配。
         Map<String,JavaClassCacheEntry> javaClassCache = new HashMap<>();
 
         if (ok) {
@@ -1137,11 +1150,13 @@ public class ContextConfig implements LifecycleListener {
         // @HandlesTypes matches - only need to process those fragments we
         // are going to use (remember orderedFragments includes any
         // container fragments)
+        // Step 5: 处理JAR文件中的注解和@HandlesTypes匹配，仅需处理将要使用的片段
         if (ok) {
             processAnnotations(orderedFragments, webXml.isMetadataComplete(), javaClassCache);
         }
 
         // Cache, if used, is no longer required so clear it
+        // 如果使用了缓存，则清除它，因为不再需要
         javaClassCache.clear();
     }
 
