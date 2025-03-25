@@ -178,6 +178,7 @@ public class DigesterFactory {
                 SERVLET_API_SYSTEM_IDS, blockExternal);
         digester.setEntityResolver(resolver);
         if (rule != null) {
+            // 添加解析规则
             digester.addRuleSet(rule);
         }
 

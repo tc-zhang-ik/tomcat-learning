@@ -214,11 +214,13 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                 throw new IllegalArgumentException(sm.getString("endpoint.init.bind.inherited"));
             }
         } else {
+            //1. 创建 ServerSocketChannel 对象
             serverSock = ServerSocketChannel.open();
+            //2. 获取底层的 ServerSocket 对象
             socketProperties.setProperties(serverSock.socket());
-            // 创建一个 InetSocketAddress 对象，用于指定服务器监听的地址和端口
+            //3. 创建一个 InetSocketAddress 对象，用于指定服务器监听的地址和端口
             InetSocketAddress addr = new InetSocketAddress(getAddress(), getPortWithOffset());
-            // 将 ServerSocket 绑定到指定的地址和端口，并设置最大连接等待队列的长度
+            //4. 将 ServerSocketChannel 绑定到指定的地址和端口，并设置最大连接等待队列的长度
             serverSock.socket().bind(addr,getAcceptCount());
         }
         serverSock.configureBlocking(true); //mimic APR behavior
@@ -232,6 +234,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
     public void startInternal() throws Exception {
 
         if (!running) {
+            // 标识已经启动
             running = true;
             paused = false;
 
@@ -249,19 +252,21 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
             }
 
             // Create worker collection
+            // 创建 Worker 线程池,如果 server.xml 中已经定义了则不会创建
             if (getExecutor() == null) {
                 createExecutor();
             }
-
+            // 创建 limit 为 maxConnections = 8192 的LimitLatch
             initializeConnectionLatch();
 
             // Start poller thread
+            // 启动 Poller 线程
             poller = new Poller();
             Thread pollerThread = new Thread(poller, getName() + "-Poller");
             pollerThread.setPriority(threadPriority);
             pollerThread.setDaemon(true);
             pollerThread.start();
-
+            // 启动 Acceptor 线程
             startAcceptorThread();
         }
     }
@@ -405,6 +410,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 
             // Set socket properties
             // Disable blocking, polling will be used
+            // 设置 SocketChannel 为非阻塞模式
             socket.configureBlocking(false);
             socketProperties.setProperties(socket.socket());
 
@@ -451,6 +457,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
 
     @Override
     protected SocketChannel serverSocketAccept() throws Exception {
+        // 接收客户端连接请求的核心方法，它会阻塞直到有客户端连接请求
         SocketChannel result = serverSock.accept();
 
         // Bug does not affect Windows. Skip the check on that platform.
@@ -610,6 +617,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
             boolean result = false;
 
             PollerEvent pe = null;
+            // 取出 events 队列中注册的 event
             for (int i = 0, size = events.size(); i < size && (pe = events.poll()) != null; i++ ) {
                 result = true;
                 NioSocketWrapper socketWrapper = pe.getSocketWrapper();
@@ -620,7 +628,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                     socketWrapper.close();
                 } else if (interestOps == OP_REGISTER) {
                     try {
-                        // 注册socket
+                        // 向 selector 注册读事件
                         sc.register(getSelector(), SelectionKey.OP_READ, socketWrapper);
                     } catch (Exception x) {
                         log.error(sm.getString("endpoint.nio.registerFail"), x);
@@ -641,6 +649,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
                             try {
                                 int ops = key.interestOps() | interestOps;
                                 attachment.interestOps(ops);
+                                // 设置关注事件
                                 key.interestOps(ops);
                             } catch (CancelledKeyException ckx) {
                                 cancelledKey(key, socketWrapper);
@@ -666,7 +675,9 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel,SocketChannel> 
          */
         public void register(final NioSocketWrapper socketWrapper) {
             socketWrapper.interestOps(SelectionKey.OP_READ);//this is what OP_REGISTER turns into.
+            // 创建 PollerEvent 对象，包括 socketWrapper 和 OP_REGISTER 事件
             PollerEvent pollerEvent = createPollerEvent(socketWrapper, OP_REGISTER);
+            // 添加到事件队列中
             addEvent(pollerEvent);
         }
 

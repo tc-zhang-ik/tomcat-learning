@@ -617,6 +617,7 @@ public class Catalina {
 
         // Start the new server
         try {
+            // Server -> Service -> Engine -> Host -> Context -> Wrapper init方法的总入口
             getServer().init();
         } catch (LifecycleException e) {
             if (Boolean.getBoolean("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE")) {
@@ -666,6 +667,7 @@ public class Catalina {
 
         // Start the new server
         try {
+            // 启动 StandardServer
             getServer().start();
         } catch (LifecycleException e) {
             log.fatal(sm.getString("catalina.serverStartFail"), e);
@@ -697,8 +699,9 @@ public class Catalina {
                 ((ClassLoaderLogManager) logManager).setUseShutdownHook(false);
             }
         }
-
+        //  await 阻塞主线程，等待收到 SHUTDOWN 信号
         if (await) {
+            // 调用 StandardServer 的 await() 方法
             await();
             stop();
         }

@@ -441,6 +441,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
         // Set up a server socket to wait on
         try {
+            // 端口和地址在 <Server port="8005" shutdown="SHUTDOWN"> 中配置
             awaitSocket = new ServerSocket(getPortWithOffset(), 1, InetAddress.getByName(address));
         } catch (IOException e) {
             log.error(sm.getString("standardServer.awaitSocket.fail", address, String.valueOf(getPortWithOffset()),
@@ -452,6 +453,8 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
             awaitThread = currentThread;
 
             // Loop waiting for a connection and a valid command
+            // 阻塞等待，直到收到 SHUTDOWN 命令
+            // 在容器关闭的时候执行 stopInstance() 方法,会将 stopAwait 设置为 true
             while (!stopAwait) {
                 ServerSocket serverSocket = awaitSocket;
                 if (serverSocket == null) {
@@ -522,6 +525,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
                 }
 
                 // Match against our command string
+                // 如果命令匹配，则退出循环
                 boolean match = command.toString().equals(shutdown);
                 if (match) {
                     log.info(sm.getString("standardServer.shutdownViaPort"));

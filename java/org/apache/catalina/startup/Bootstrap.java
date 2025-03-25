@@ -253,7 +253,7 @@ public final class Bootstrap {
      * @throws Exception Fatal initialization error
      */
     public void init() throws Exception {
-        // 初始化 catalina shared common类加载器,默认情况下三者为同一对象
+        // 初始化 catalina shared common类加载器,默认情况下 Catalina.properties 没有配置server.loader和shared.loader，三者为同一对象
         initClassLoaders();
         // 设置当前线程的上下文类加载器为 catalinaLoader
         Thread.currentThread().setContextClassLoader(catalinaLoader);
@@ -443,6 +443,7 @@ public final class Bootstrap {
      * @param args Command line arguments to be processed
      */
     public static void main(String args[]) {
+        // Tomcat 的启动类，启动的起点
 
         synchronized (daemonLock) {
             if (daemon == null) {

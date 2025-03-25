@@ -555,6 +555,7 @@ public class StandardService extends LifecycleMBeanBase implements Service {
         }
 
         // Initialize mapper listener
+        // 初始化 MapperListener
         mapperListener.init();
 
         // Initialize our defined Connectors

@@ -56,7 +56,9 @@ public class WebXmlParser {
 
     public WebXmlParser(boolean namespaceAware, boolean validation,
             boolean blockExternal) {
+        // 创建 Web 解析规则
         webRuleSet = new WebRuleSet(false);
+        // 创建解析 Web 解析器
         webDigester = DigesterFactory.newDigester(validation,
                 namespaceAware, webRuleSet, blockExternal);
         webDigester.getParser();
@@ -106,7 +108,7 @@ public class WebXmlParser {
             digester = webDigester;
             ruleSet = webRuleSet;
         }
-
+        // 根据规则解析 Web.xml 文件
         digester.push(dest);
         digester.setErrorHandler(handler);
 

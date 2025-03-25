@@ -165,6 +165,7 @@ public class WebRuleSet extends RuleSetBase {
      */
     @Override
     public void addRuleInstances(Digester digester) {
+        // 添加解析 Web.xml 的规则
         digester.addRule(fullPrefix,
                          new SetPublicIdRule("setPublicId"));
         digester.addRule(fullPrefix,

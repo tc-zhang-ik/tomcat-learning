@@ -1505,6 +1505,7 @@ public abstract class AbstractEndpoint<S,U> {
         }
         LimitLatch latch = connectionLimitLatch;
         if (latch!=null) {
+            // 如果连接数超过最大限制，等待直到有可用连接
             latch.countUpOrAwait();
         }
     }

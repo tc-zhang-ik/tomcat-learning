@@ -1240,6 +1240,7 @@ public class ContextConfig implements LifecycleListener {
         for (ContextService service : webxml.getServiceRefs().values()) {
             context.getNamingResources().addService(service);
         }
+        // 遍历 webXml 中的 servlet，并为每个 servlet 创建一个 Wrapper 对象，然后将其添加到 context 中
         for (ServletDef servlet : webxml.getServlets().values()) {
             Wrapper wrapper = context.createWrapper();
             // Description is ignored
@@ -1364,7 +1365,7 @@ public class ContextConfig implements LifecycleListener {
         Host host = (Host) context.getParent();
 
         DefaultWebXmlCacheEntry entry = hostWebXmlCache.get(host);
-
+        // CatalinaBase + /conf/web.xml
         InputSource globalWebXml = getGlobalWebXmlSource();
         InputSource hostWebXml = getHostWebXmlSource();
 
@@ -1453,7 +1454,7 @@ public class ContextConfig implements LifecycleListener {
             // Parse host level web.xml if present
             // Additive apart from welcome pages
             webXmlDefaultFragment.setReplaceWelcomeFiles(true);
-
+            // 解析 web.xml 操作
             if (!webXmlParser.parseWebXml(hostWebXml, webXmlDefaultFragment, false)) {
                 ok = false;
             }

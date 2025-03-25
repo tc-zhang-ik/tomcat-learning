@@ -1582,6 +1582,7 @@ public class Digester extends DefaultHandler2 {
             }
         }
         setRuleNamespaceURI(newNamespaceURI);
+        // 添加规则
         ruleSet.addRuleInstances(this);
         setRuleNamespaceURI(oldNamespaceURI);
     }

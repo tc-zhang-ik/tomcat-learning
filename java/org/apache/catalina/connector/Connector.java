@@ -1046,6 +1046,7 @@ public class Connector extends LifecycleMBeanBase {
         super.initInternal();
 
         // Initialize adapter
+        // 初始化 protocolHandler 的 Adapter 为 CoyoteAdapter
         adapter = new CoyoteAdapter(this);
         protocolHandler.setAdapter(adapter);
 
@@ -1072,6 +1073,7 @@ public class Connector extends LifecycleMBeanBase {
         }
 
         try {
+            // 初始化 protocolHandler
             protocolHandler.init();
         } catch (Exception e) {
             throw new LifecycleException(sm.getString("coyoteConnector.protocolHandlerInitializationFailed"), e);
