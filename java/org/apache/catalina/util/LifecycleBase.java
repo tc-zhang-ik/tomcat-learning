@@ -44,6 +44,7 @@ public abstract class LifecycleBase implements Lifecycle {
     /**
      * The list of registered LifecycleListeners for event notifications.
      */
+    // 主要由 server.xml 中定义添加
     private final List<LifecycleListener> lifecycleListeners = new CopyOnWriteArrayList<>();
 
 

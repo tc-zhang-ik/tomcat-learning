@@ -80,10 +80,12 @@ public class Connector extends LifecycleMBeanBase {
 
 
     public Connector(String protocol) {
+        // 初始化 protocolHandlerClassName，一般为 Http11NioProtocol
         setProtocol(protocol);
         // Instantiate protocol handler
         ProtocolHandler p = null;
         try {
+            // 反射创建 protocolHandler - Http11NioProtocol
             Class<?> clazz = Class.forName(protocolHandlerClassName);
             p = (ProtocolHandler) clazz.getConstructor().newInstance();
         } catch (Exception e) {
@@ -110,6 +112,7 @@ public class Connector extends LifecycleMBeanBase {
 
     /**
      * The <code>Service</code> we are associated with (if any).
+     * <p>和 Connector 绑定的 Service</p>
      */
     protected Service service = null;
 
@@ -246,7 +249,7 @@ public class Connector extends LifecycleMBeanBase {
 
 
     /**
-     * Coyote adapter.
+     * Coyote adapter. -- CoyoteAdapter
      */
     protected Adapter adapter = null;
 
@@ -1073,7 +1076,7 @@ public class Connector extends LifecycleMBeanBase {
         }
 
         try {
-            // 初始化 protocolHandler
+            // 初始化 protocolHandler (初始化Endpoint,启动监听端口)
             protocolHandler.init();
         } catch (Exception e) {
             throw new LifecycleException(sm.getString("coyoteConnector.protocolHandlerInitializationFailed"), e);

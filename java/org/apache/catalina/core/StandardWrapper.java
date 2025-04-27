@@ -730,8 +730,10 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         boolean newInstance = false;
 
         // If not SingleThreadedModel, return the same instance every time
+        // - 对于非 STM 的 Servlet，每次调用都返回同一个实例。
         if (!singleThreadModel) {
             // Load and initialize our instance if necessary
+            // -通过 方法加载 Servlet 实例。 `loadServlet()`
             if (instance == null || !instanceInitialized) {
                 synchronized (this) {
                     if (instance == null) {
@@ -784,10 +786,12 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                 return instance;
             }
         }
-
+        // - - 对于 STM 的 Servlet，每次调用都需要从实例池中分配一个独立的实例，确保线程安全。
         synchronized (instancePool) {
             while (countAllocated.get() >= nInstances) {
                 // Allocate a new instance if possible, or else wait
+                // - 如果当前已分配的实例数 (`countAllocated`) 超过实例池中的实例数 ( `nInstances`)，则需要等待。
+                // - 如果实例池未达到最大限制 (`maxInstances`)，可以加载新的 Servlet 实例并加入池中。
                 if (nInstances < maxInstances) {
                     try {
                         instancePool.push(loadServlet());

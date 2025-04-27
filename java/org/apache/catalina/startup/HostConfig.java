@@ -564,7 +564,7 @@ public class HostConfig implements LifecycleListener {
         if (files == null) {
             return;
         }
-
+        // 获取 startStopExecutor 线程池
         ExecutorService es = host.getStartStopExecutor();
         List<Future<?>> results = new ArrayList<>();
 
@@ -573,7 +573,7 @@ public class HostConfig implements LifecycleListener {
 
             if (file.toLowerCase(Locale.ENGLISH).endsWith(".xml")) {
                 ContextName cn = new ContextName(file, true);
-
+                // 添加 Context 到 servicedSet 和 serviced 中
                 if (tryAddServiced(cn.getName())) {
                     try {
                         if (deploymentExists(cn.getName())) {
@@ -630,6 +630,7 @@ public class HostConfig implements LifecycleListener {
         try {
             synchronized (digesterLock) {
                 try (FileInputStream fis = new FileInputStream(contextXml)) {
+                    // 使用 Digester 解析 contextXml 生成 Context 对象
                     context = (Context) digester.parse(fis);
                 } catch (Exception e) {
                     log.error(sm.getString("hostConfig.deployDescriptor.error", contextXml.getAbsolutePath()), e);
@@ -648,6 +649,7 @@ public class HostConfig implements LifecycleListener {
 
             Class<?> clazz = Class.forName(host.getConfigClass());
             LifecycleListener listener = (LifecycleListener) clazz.getConstructor().newInstance();
+            // 初始化 Context 的参数
             context.addLifecycleListener(listener);
 
             context.setConfigFile(contextXml.toURI().toURL());
@@ -661,6 +663,7 @@ public class HostConfig implements LifecycleListener {
                     docBase = new File(host.getAppBaseFile(), context.getDocBase());
                 }
                 // If external docBase, register .xml as redeploy first
+                // 获取 docBase 的全路径
                 if (!docBase.getCanonicalFile().toPath().startsWith(host.getAppBaseFile().toPath())) {
                     isExternal = true;
                     deployedApp.redeployResources.put(contextXml.getAbsolutePath(),
@@ -670,6 +673,7 @@ public class HostConfig implements LifecycleListener {
                         isExternalWar = true;
                     }
                     // Check that a WAR or DIR in the appBase is not 'hidden'
+                    // 检查 appBase 下的 war 文件和 dir 文件是否被隐藏
                     File war = new File(host.getAppBaseFile(), cn.getBaseName() + ".war");
                     if (war.exists()) {
                         log.warn(sm.getString("hostConfig.deployDescriptor.hiddenWar", contextXml.getAbsolutePath(),
@@ -686,7 +690,7 @@ public class HostConfig implements LifecycleListener {
                     context.setDocBase(null);
                 }
             }
-
+            // 将 Context 添加到 host 中
             host.addChild(context);
         } catch (Throwable t) {
             ExceptionUtils.handleThrowable(t);
@@ -1196,7 +1200,7 @@ public class HostConfig implements LifecycleListener {
             context.setPath(cn.getPath());
             context.setWebappVersion(cn.getVersion());
             context.setDocBase(cn.getBaseName());
-            // 将context添加到host中，会随之出发StandardConfig的start方法，进而触发ContextConfig的lifecycleEvent方法
+            // 将context添加到host中，会随之触发StandardContext的start方法，进而触发ContextConfig的lifecycleEvent方法
             host.addChild(context);
         } catch (Throwable t) {
             ExceptionUtils.handleThrowable(t);

@@ -392,8 +392,11 @@ public class Tomcat {
      * @throws LifecycleException Start error
      */
     public void start() throws LifecycleException {
+        // 初始化 server 和 service，并进行关联
         getServer();
+        // 初始化 connector，并将 service 和 connector 进行关联
         getConnector();
+        // 执行 server 的启动
         server.start();
     }
 
@@ -564,13 +567,14 @@ public class Tomcat {
         System.setProperty("catalina.useNaming", "false");
 
         server = new StandardServer();
-
+        // 初始化 baseDir 以及 server 的 CatalinaBase/Home
         initBaseDir();
 
         server.setPort(-1);
 
         Service service = new StandardService();
         service.setName("Tomcat");
+        // 将 service 和 server 进行关联
         server.addService(service);
         return server;
     }
@@ -607,6 +611,7 @@ public class Tomcat {
         ctx.addLifecycleListener(new FixContextListener());
 
         if (host == null) {
+            // 创建 Service - Engine - Host - Context并建立关联关系
             getHost().addChild(ctx);
         } else {
             host.addChild(ctx);
@@ -767,8 +772,10 @@ public class Tomcat {
 
 
     protected void initBaseDir() {
+        // catalina.home
         String catalinaHome = System.getProperty(Globals.CATALINA_HOME_PROP);
         if (basedir == null) {
+            // catalina.base
             basedir = System.getProperty(Globals.CATALINA_BASE_PROP);
         }
         if (basedir == null) {
@@ -776,6 +783,7 @@ public class Tomcat {
         }
         if (basedir == null) {
             // Create a temp dir.
+            // 如果 catalina.home 和 catalina.base 都没有设置，那么就创建一个临时目录作为 baseDir
             basedir = System.getProperty("user.dir") + "/tomcat." + port;
         }
 

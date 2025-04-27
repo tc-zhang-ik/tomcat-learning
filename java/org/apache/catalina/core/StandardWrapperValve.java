@@ -113,6 +113,7 @@ final class StandardWrapperValve extends ValveBase {
         // Allocate a servlet instance to process this request
         try {
             if (!unavailable) {
+                // 反射创建Servlet
                 servlet = wrapper.allocate();
             }
         } catch (UnavailableException e) {

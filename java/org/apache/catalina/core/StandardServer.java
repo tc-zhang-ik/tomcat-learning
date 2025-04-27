@@ -780,6 +780,17 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         globalNamingResources.start();
 
         // Start our defined Services
+        /*
+            1. 启动 StandardEngine(通过 startStopExecutor 启动子容器Host，启动pipeline)
+                启动 StandardHost (向host的pipeline中添加 ErrorReportValve，继续启动子容器，启动pipeline)
+                    启动 StandardContext（启动pipeline）
+                        启动 StandardWrapper（启动pipeline）
+            2. 启动 executor
+            3. 启动 MapperListener
+            4. 启动 Connector
+                启动 ProtocolHandler
+                    启动 NioEndpoint (创建线程池，启动 Worker Acceptor线程)
+         */
         synchronized (servicesLock) {
             for (Service service : services) {
                 service.start();
@@ -869,7 +880,15 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         // Initialize our defined Services
         synchronized (servicesLock) {
             for (Service service : services) {
-                // 初始化 StandardService
+                /* 初始化 StandardService
+                 1. 初始化 Engine（初始化 startStopExecutor )
+                 2. 初始化 Executor (无实际操作)
+                 3. 初始化 MapperListener(无实际操作)
+                 4. 初始化 Connector
+                    4.1 初始化 adapter
+                    4.2 初始化 protocolHandler
+                        4.2.1 初始化 NioEndpoint,开始 bind 监听端口
+                 */
                 service.init();
             }
         }

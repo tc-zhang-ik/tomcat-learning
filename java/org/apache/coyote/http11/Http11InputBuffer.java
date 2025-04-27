@@ -360,6 +360,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
                         // timeout.
                         wrapper.setReadTimeout(wrapper.getEndpoint().getKeepAliveTimeout());
                     }
+                    // 向 bytebuffer 中填充数据
                     if (!fill(false)) {
                         // A read is pending, so no longer in initial state
                         parsingRequestLinePhase = 1;
@@ -506,6 +507,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
                 }
             }
             if (parsingRequestLineQPos >= 0) {
+                // 给 queryMB 赋 请求参数的值 ?name=zhang
                 request.queryString().setBytes(byteBuffer.array(), parsingRequestLineQPos + 1,
                         end - parsingRequestLineQPos - 1);
                 request.requestURI().setBytes(byteBuffer.array(), parsingRequestLineStart,
@@ -785,6 +787,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
                 byteBuffer.position(byteBuffer.limit());
             }
             byteBuffer.limit(byteBuffer.capacity());
+            // 向 bytebuffer 中填充数据
             nRead = wrapper.read(block, byteBuffer);
         } finally {
             // Ensure that the buffer limit and position are returned to a
@@ -875,8 +878,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler 
         //
         // Reading the header name
         // Header name is always US-ASCII
-        //
-
+        //循环遍历 byteBuffer 将值赋值给 Request.headers 中
         while (headerParsePos == HeaderParsePosition.HEADER_NAME) {
 
             // Read new bytes if needed

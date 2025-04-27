@@ -54,8 +54,9 @@ public final class Bootstrap {
      */
     private static final Object daemonLock = new Object();
     private static volatile Bootstrap daemon = null;
-
+    // Catalina.base
     private static final File catalinaBaseFile;
+    // Catalina.home
     private static final File catalinaHomeFile;
 
     private static final Pattern PATH_PATTERN = Pattern.compile("(\"[^\"]*\")|(([^,])*)");

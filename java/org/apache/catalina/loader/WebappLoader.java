@@ -377,16 +377,16 @@ public class WebappLoader extends LifecycleMBeanBase implements Loader, Property
 
         // Construct a class loader based on our current repositories list
         try {
-
+            // 通过反射创建 ParallelWebappClassLoader
             classLoader = createClassLoader();
             classLoader.setResources(context.getResources());
             classLoader.setDelegate(this.delegate);
 
             // Configure our repositories
             setClassPath();
-
+            // 初始化 org.apache.catalina.jsp_classpath 的值
             setPermissions();
-
+            // catalina.home/webapps/WEB-INF/classes 和 /WEB-INF/lib 如果存在且可读，添加到 localRepositories 中
             ((Lifecycle) classLoader).start();
 
             String contextName = context.getName();

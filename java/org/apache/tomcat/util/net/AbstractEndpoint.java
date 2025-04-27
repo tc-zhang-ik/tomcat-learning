@@ -1274,6 +1274,12 @@ public abstract class AbstractEndpoint<S,U> {
             if (socketWrapper == null) {
                 return false;
             }
+            /*
+            -
+            - 如果缓存池不为空，尝试从缓存中获取一个可用的 `SocketProcessorBase`实例。
+            - 如果缓存为空，则调用 `createSocketProcessor`方法创建一个新的`SocketProcessorBase` 实例。
+            - 如果从缓存中获取到了实例，则调用其 `reset` 方法重置状态，以便重新使用。
+             */
             SocketProcessorBase<S> sc = null;
             if (processorCache != null) {
                 sc = processorCache.pop();

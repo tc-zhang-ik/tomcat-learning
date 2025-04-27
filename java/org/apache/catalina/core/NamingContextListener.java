@@ -78,7 +78,8 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * Helper class used to initialize and populate the JNDI context associated with each context and server.
- *
+ * NamingContextListener 类能够有效地管理和响应与 JNDI 命名上下文相关的各种操作，包括添加、删除资源以及处理生命周期事件等。
+ * 这使得它成为管理应用程序内 JNDI 资源的重要组件之一 `NamingContextListener`
  * @author Remy Maucherat
  */
 public class NamingContextListener implements LifecycleListener, ContainerListener, PropertyChangeListener {

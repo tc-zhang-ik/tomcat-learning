@@ -62,7 +62,8 @@ import org.apache.tomcat.util.res.StringManager;
 /**
  * Holds and manages the naming resources defined in the J2EE Enterprise Naming Context and their associated JNDI
  * context.
- *
+ * 类是用于管理 Web 应用程序中的各种命名资源的实现类。
+ * 这些资源包括 EJB 引用、环境条目、本地 EJB 引用、消息目的地引用、资源引用、资源链接和服务引用等。 `NamingResourcesImpl`
  * @author Remy Maucherat
  */
 public class NamingResourcesImpl extends LifecycleMBeanBase implements Serializable, NamingResources {

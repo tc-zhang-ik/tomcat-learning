@@ -91,7 +91,9 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
 
 
     public AbstractProtocol(AbstractEndpoint<S, ?> endpoint) {
+        // 添加 Endpoint
         this.endpoint = endpoint;
+        // 添加 ConnectionHandler
         ConnectionHandler<S> cHandler = new ConnectionHandler<>(this);
         setHandler(cHandler);
         getEndpoint().setHandler(cHandler);
@@ -854,6 +856,10 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
             // no other thread can release it while we're using it. Whatever processor is
             // held by this variable will be associated with the SocketWrapper before this
             // method returns.
+            /*
+            - 调用 `wrapper.takeCurrentProcessor()`获取与当前 `Socket` 关联的处理器（`Processor`）。
+            - 此操作会将处理器从 `wrapper` 中移除，确保其他线程无法同时访问该处理器。
+             */
             Processor processor = (Processor) wrapper.takeCurrentProcessor();
             if (getLog().isTraceEnabled()) {
                 getLog().trace(sm.getString("abstractConnectionHandler.connectionsGet", processor, socket));
@@ -863,12 +869,19 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
             // dispatched. Because of delays in the dispatch process, the
             // timeout may no longer be required. Check here and avoid
             // unnecessary processing.
+            /*
+            - 如果事件类型是超时（`TIMEOUT`），并且满足以下条件之一：
+                - 当前没有处理器（`processor == null`）。
+                - 处理器不是异步或升级状态。
+                - 处理器虽是异步但未触发超时。
+            - 则认为无需进一步处理，直接返回`SocketState.OPEN`
+             */
             if (SocketEvent.TIMEOUT == status && (processor == null || !processor.isAsync() && !processor.isUpgrade() ||
                     processor.isAsync() && !processor.checkAsyncTimeoutGeneration())) {
                 // This is effectively a NO-OP
                 return SocketState.OPEN;
             }
-
+            // 如果存在处理器，将其从等待队列中移除，避免异步超时事件被触发。
             if (processor != null) {
                 // Make sure an async timeout doesn't fire
                 getProtocol().removeWaitingProcessor(processor);
@@ -879,6 +892,10 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
             }
 
             try {
+                /*
+                - 检查 `Socket` 是否协商了特定协议（如 HTTP/2 或 WebSocket）。
+                - 如果协商成功，则创建对应的协议处理器（`Processor`）。
+                 */
                 if (processor == null) {
                     String negotiatedProtocol = wrapper.getNegotiatedProtocol();
                     // OpenSSL typically returns null whereas JSSE typically
@@ -914,21 +931,23 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                         }
                     }
                 }
+                // 如果处理器为空，则从已回收的处理器队列中获取一个处理器。
                 if (processor == null) {
                     processor = recycledProcessors.pop();
                     if (getLog().isTraceEnabled()) {
                         getLog().trace(sm.getString("abstractConnectionHandler.processorPop", processor));
                     }
                 }
+                // -如果仍然没有处理器，调用协议工厂方法创建一个新的处理器，并注册到系统中。
                 if (processor == null) {
-                    // 当前协议创建一个Processor
+                    // 当前协议创建一个 Http11Processor
                     processor = getProtocol().createProcessor();
                     register(processor);
                     if (getLog().isTraceEnabled()) {
                         getLog().trace(sm.getString("abstractConnectionHandler.processorCreate", processor));
                     }
                 }
-
+                // - 为处理器设置 SSL 支持，以便处理加密连接。
                 processor.setSslSupport(wrapper.getSslSupport(getProtocol().getClientCertProvider()));
 
                 SocketState state = SocketState.CLOSED;
@@ -1053,6 +1072,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                 }
 
                 if (processor != null) {
+                    // 将 processor 保存到 Wrapper 中
                     wrapper.setCurrentProcessor(processor);
                 }
                 return state;

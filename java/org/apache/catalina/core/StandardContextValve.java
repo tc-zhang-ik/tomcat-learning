@@ -60,6 +60,7 @@ final class StandardContextValve extends ValveBase {
     public void invoke(Request request, Response response) throws IOException, ServletException {
 
         // Disallow any direct access to resources under WEB-INF or META-INF
+        // 禁止客户端直接访问 `/META-INF/`和 `/WEB-INF/` 目录下的资源
         MessageBytes requestPathMB = request.getRequestPathMB();
         if ((requestPathMB.startsWithIgnoreCase("/META-INF/", 0)) || (requestPathMB.equalsIgnoreCase("/META-INF")) ||
                 (requestPathMB.startsWithIgnoreCase("/WEB-INF/", 0)) || (requestPathMB.equalsIgnoreCase("/WEB-INF"))) {
@@ -68,6 +69,7 @@ final class StandardContextValve extends ValveBase {
         }
 
         // Select the Wrapper to be used for this Request
+        // 检查请求的 Wrapper 是否可用
         Wrapper wrapper = request.getWrapper();
         if (wrapper == null || wrapper.isUnavailable()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -75,6 +77,7 @@ final class StandardContextValve extends ValveBase {
         }
 
         // Acknowledge the request
+        // 发送请求确认
         try {
             response.sendAcknowledgement(ContinueResponseTiming.IMMEDIATELY);
         } catch (IOException ioe) {
@@ -83,10 +86,11 @@ final class StandardContextValve extends ValveBase {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
         }
-
+        // 设置异步支持
         if (request.isAsyncSupported()) {
             request.setAsyncSupported(wrapper.getPipeline().isAsyncSupported());
         }
+        // 调用 Wrapper 管道中的第一个 Valve
         wrapper.getPipeline().getFirst().invoke(request, response);
     }
 }

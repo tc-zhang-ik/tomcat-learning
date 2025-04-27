@@ -129,7 +129,7 @@ public final class Mapper {
                 return;
             }
         }
-        //4.添加aliases到newHost中
+        //4.添加 aliases 到 newHost 中
         List<MappedHost> newAliases = new ArrayList<>(aliases.length);
         for (String alias : aliases) {
             alias = renameWildcardHost(alias);
@@ -260,7 +260,7 @@ public final class Mapper {
             String[] welcomeResources, WebResourceRoot resources, Collection<WrapperMappingInfo> wrappers) {
 
         hostName = renameWildcardHost(hostName);
-        //1. 查找hostName对应的host
+        //1. 查找 hostName 对应的 host
         MappedHost mappedHost = exactFind(hosts, hostName);
         if (mappedHost == null) {
             // 2. 创建host，添加到hosts中
@@ -287,10 +287,10 @@ public final class Mapper {
             if (wrappers != null) {
                 addWrappers(newContextVersion, wrappers);
             }
-            //5.3 根据path去mappedHost中的contextList查找mappedContext
+            //5.3 根据 path 去 mappedHost 中的 contextList 查找 mappedContext
             ContextList contextList = mappedHost.contextList;
             MappedContext mappedContext = exactFind(contextList.contexts, path);
-            //5.4 如果mappedContext为null，则创建mappedContext，并将则创建mappedContext添加到contextList中
+            //5.4 如果 mappedContext 为 null，则创建 mappedContext，并将则创建 mappedContext 添加到 contextObjectToContextVersionMap 中
             if (mappedContext == null) {
                 mappedContext = new MappedContext(path, newContextVersion);
                 ContextList newContextList = contextList.addContext(mappedContext, slashCount);
@@ -299,7 +299,7 @@ public final class Mapper {
                     contextObjectToContextVersionMap.put(context, newContextVersion);
                 }
             } else {
-                //5.5 如果mappedContext不为null，则将newContextVersion添加到contextVersions中
+                //5.5 如果 mappedContext 不为null，则将 newContextVersion 添加到 contextVersions 中
                 ContextVersion[] contextVersions = mappedContext.versions;
                 ContextVersion[] newContextVersions = new ContextVersion[contextVersions.length + 1];
                 if (insertMap(contextVersions, newContextVersions, newContextVersion)) {

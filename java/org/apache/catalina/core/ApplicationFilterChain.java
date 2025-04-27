@@ -161,7 +161,7 @@ public final class ApplicationFilterChain implements FilterChain {
     private void internalDoFilter(ServletRequest request, ServletResponse response)
             throws IOException, ServletException {
 
-        // Call the next filter if there is one
+        // Call the next filter if request.getParameters().getParameterNames()there is one
         if (pos < n) {
             ApplicationFilterConfig filterConfig = filters[pos++];
             try {
@@ -190,7 +190,7 @@ public final class ApplicationFilterChain implements FilterChain {
             }
             return;
         }
-
+        System.out.println(request.getParameterMap());
         // We fell off the end of the chain -- call the servlet instance
         try {
             if (ApplicationDispatcher.WRAP_SAME_OBJECT) {

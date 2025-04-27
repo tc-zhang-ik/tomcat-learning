@@ -185,7 +185,7 @@ public class Http11Processor extends AbstractProcessor {
         this.protocol = protocol;
 
         httpParser = new HttpParser(protocol.getRelaxedPathChars(), protocol.getRelaxedQueryChars());
-
+        // 初始化 inputBuffer
         inputBuffer = new Http11InputBuffer(request, protocol.getMaxHttpRequestHeaderSize(),
                 protocol.getRejectIllegalHeader(), httpParser);
         request.setInputBuffer(inputBuffer);
@@ -475,6 +475,7 @@ public class Http11Processor extends AbstractProcessor {
         rp.setStage(org.apache.coyote.Constants.STAGE_PARSE);
 
         // Setting up the I/O
+        // 初始化 input/outputBuffer 分配数组空间
         setSocketWrapper(socketWrapper);
 
         // Flags
@@ -489,6 +490,7 @@ public class Http11Processor extends AbstractProcessor {
 
             // Parsing the request header
             try {
+                // 向 bytebuffer 中填充数据
                 if (!inputBuffer.parseRequestLine(keptAlive)) {
                     if (inputBuffer.getParsingRequestLinePhase() == -1) {
                         return SocketState.UPGRADING;
@@ -500,9 +502,11 @@ public class Http11Processor extends AbstractProcessor {
                 // Process the Protocol component of the request line
                 // Need to know if this is an HTTP 0.9 request before trying to
                 // parse headers.
+                // 初始化 http 协议标志 http09/http11
                 prepareRequestProtocol();
 
                 if (endpoint.isPaused()) {
+                    // 服务不可用，返回503状态码
                     // 503 - Service unavailable
                     response.setStatus(503);
                     setErrorState(ErrorState.CLOSE_CLEAN, null);
@@ -511,6 +515,7 @@ public class Http11Processor extends AbstractProcessor {
                     // Set this every time in case limit has been changed via JMX
                     request.getMimeHeaders().setLimit(endpoint.getMaxHeaderCount());
                     // Don't parse headers for HTTP/0.9
+                    // 解析请求头（byteBuffer），初始化到 Request 对象中
                     if (!http09 && !inputBuffer.parseHeaders()) {
                         // We've read part of the request, don't recycle it
                         // instead associate it with the socket
@@ -545,6 +550,7 @@ public class Http11Processor extends AbstractProcessor {
                     }
                 }
                 // 400 - Bad Request
+                // 请求解析错误，返回400状态码
                 response.setStatus(400);
                 setErrorState(ErrorState.CLOSE_CLEAN, t);
             }
@@ -592,6 +598,7 @@ public class Http11Processor extends AbstractProcessor {
                 // Setting up filters, and parse some request headers
                 rp.setStage(org.apache.coyote.Constants.STAGE_PREPARE);
                 try {
+                    // 初始化 org.apache.coyote.Request 对象参数
                     prepareRequest();
                 } catch (Throwable t) {
                     ExceptionUtils.handleThrowable(t);

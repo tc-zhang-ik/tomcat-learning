@@ -524,16 +524,18 @@ public class Catalina {
         loaded = true;
 
         long t1 = System.nanoTime();
-
+        // 已经被废弃的方法
         initDirs();
 
         // Before digester - it may be needed
+        // 初始化 java.naming.factory 相关参数
         initNaming();
 
         // Create and execute our Digester
         // 创建解析规则,解析 Server.xml 文件
         Digester digester = createStartDigester();
 
+        // 获取 catalina.base/server.xml 作为配置文件
         InputSource inputSource = null;
         InputStream inputStream = null;
         File file = null;
@@ -668,6 +670,9 @@ public class Catalina {
         // Start the new server
         try {
             // 启动 StandardServer
+            /*
+                1. 执行
+             */
             getServer().start();
         } catch (LifecycleException e) {
             log.fatal(sm.getString("catalina.serverStartFail"), e);

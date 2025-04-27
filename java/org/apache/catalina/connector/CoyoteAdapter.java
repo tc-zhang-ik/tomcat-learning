@@ -303,7 +303,7 @@ public class CoyoteAdapter implements Adapter {
 
     @Override
     public void service(org.apache.coyote.Request req, org.apache.coyote.Response res) throws Exception {
-
+        // org.apache.catalina.connector.Request
         Request request = (Request) req.getNote(ADAPTER_NOTES);
         Response response = (Response) res.getNote(ADAPTER_NOTES);
 
@@ -319,6 +319,7 @@ public class CoyoteAdapter implements Adapter {
             response.setRequest(request);
 
             // Set as notes
+            // 将 Request 和 Response 对象 保存在 Coyote 的 Request 和 Coyote 的 Response 中
             req.setNote(ADAPTER_NOTES, request);
             res.setNote(ADAPTER_NOTES, response);
 
@@ -338,13 +339,13 @@ public class CoyoteAdapter implements Adapter {
         try {
             // Parse and set Catalina and configuration specific
             // request parameters
-            // 解析请求，匹配对应的 mappingData
+            // 解析请求，匹配对应的 Request.mappingData
             postParseSuccess = postParseRequest(req, request, res, response);
             if (postParseSuccess) {
                 // check valves if we support async
                 request.setAsyncSupported(connector.getService().getContainer().getPipeline().isAsyncSupported());
                 // Calling the container
-                // 一次调用子容器的 valve 链执行，Engine -> Host -> Context -> Wrapper
+                // 依次调用子容器的 valve 链执行，Engine -> Host -> Context -> Wrapper
                 connector.getService().getContainer().getPipeline().getFirst().invoke(request, response);
             }
             if (request.isAsync()) {
@@ -566,6 +567,7 @@ public class CoyoteAdapter implements Adapter {
         // If the processor has set the scheme (AJP does this, HTTP does this if
         // SSL is enabled) use this to set the secure flag as well. If the
         // processor hasn't set it, use the settings from the connector
+        //  1.设置 schema 和 secure 标志
         if (req.scheme().isNull()) {
             // Use connector scheme and secure configuration, (defaults to
             // "http" and false respectively)
@@ -578,6 +580,7 @@ public class CoyoteAdapter implements Adapter {
 
         // At this point the Host header has been processed.
         // Override if the proxyPort/proxyHost are set
+        // 2.设置代理端口和主机名
         String proxyName = connector.getProxyName();
         int proxyPort = connector.getProxyPort();
         if (proxyPort != 0) {
@@ -585,21 +588,26 @@ public class CoyoteAdapter implements Adapter {
         } else if (req.getServerPort() == -1) {
             // Not explicitly set. Use default ports based on the scheme
             if (req.scheme().equals("https")) {
+                // https 默认端口 443
                 req.setServerPort(443);
             } else {
+                // http 默认端口 80
                 req.setServerPort(80);
             }
         }
         if (proxyName != null) {
+            // 设置代理主机名
             req.serverName().setString(proxyName);
         }
 
         MessageBytes undecodedURI = req.requestURI();
 
         // Check for ping OPTIONS * request
+        // 3.检查是否是ping OPTIONS * 请求
         if (undecodedURI.equals("*")) {
             if (req.method().equals("OPTIONS")) {
                 StringBuilder allow = new StringBuilder();
+                // 如果请求的 URI 是 `"*"`，并且方法是 `OPTIONS`，则返回允许的 HTTP 方法列表（`Allow` 头部）。
                 allow.append("GET, HEAD, POST, PUT, DELETE, OPTIONS");
                 // Trace if allowed
                 if (connector.getAllowTrace()) {
@@ -610,6 +618,7 @@ public class CoyoteAdapter implements Adapter {
                 connector.getService().getContainer().logAccess(request, response, 0, true);
                 return false;
             } else {
+                //  如果方法不是 `OPTIONS`，则返回 `400 Bad Request` 错误。
                 response.sendError(400, sm.getString("coyoteAdapter.invalidURI"));
             }
         }
@@ -617,6 +626,7 @@ public class CoyoteAdapter implements Adapter {
         MessageBytes decodedURI = req.decodedURI();
 
         // Filter CONNECT method
+        // 如果请求方法是 `CONNECT`，则返回 `501 Not Implemented` 错误。
         if (req.method().equals("CONNECT")) {
             response.sendError(HttpServletResponse.SC_NOT_IMPLEMENTED, sm.getString("coyoteAdapter.connect"));
         } else {
@@ -665,7 +675,9 @@ public class CoyoteAdapter implements Adapter {
         }
 
         // Request mapping.
+        // 5. 请求映射
         MessageBytes serverName;
+        // 根据是否启用了 IP 虚拟主机（`useIPVHosts`），选择使用本地名称或服务器名称。
         if (connector.getUseIPVHosts()) {
             serverName = req.localName();
             if (serverName.isNull()) {
@@ -697,6 +709,7 @@ public class CoyoteAdapter implements Adapter {
             // If there is no context at this point, either this is a 404
             // because no ROOT context has been deployed or the URI was invalid
             // so no context could be mapped.
+            // 如果没有匹配到 Context，则为 404 错误
             if (request.getContext() == null) {
                 // Allow processing to continue.
                 // If present, the rewrite Valve may rewrite this to a valid
@@ -711,6 +724,7 @@ public class CoyoteAdapter implements Adapter {
             // Now we have the context, we can parse the session ID from the URL
             // (if any). Need to do this before we redirect in case we need to
             // include the session id in the redirect
+            // - 如果启用了基于 URL 的会话跟踪模式（`SessionTrackingMode.URL`），则从请求路径中提取会话 ID。
             String sessionID;
             if (request.getServletContext().getEffectiveSessionTrackingModes().contains(SessionTrackingMode.URL)) {
 
@@ -723,6 +737,7 @@ public class CoyoteAdapter implements Adapter {
             }
 
             // Look for session ID in cookies and SSL session
+            // 从 Cookie 和 SSL 会话中解析会话 ID
             try {
                 parseSessionCookiesId(request);
             } catch (IllegalArgumentException e) {
@@ -740,7 +755,9 @@ public class CoyoteAdapter implements Adapter {
             mapRequired = false;
             if (version != null && request.getContext() == versionContext) {
                 // We got the version that we asked for. That is it.
+                // 已经找到所需的 Context
             } else {
+                // 重新映射
                 version = null;
                 versionContext = null;
 
@@ -749,18 +766,22 @@ public class CoyoteAdapter implements Adapter {
                 // No session ID means no possibility of remap
                 if (contexts != null && sessionID != null) {
                     // Find the context associated with the session
+                    // 遍历所有 Context，找到与会话 ID 关联的 Context
                     for (int i = contexts.length; i > 0; i--) {
                         Context ctxt = contexts[i - 1];
                         if (ctxt.getManager().findSession(sessionID) != null) {
                             // We found a context. Is it the one that has
                             // already been mapped?
+                            // 如果 Context 不是之前已经映射的 Context，则重新映射
                             if (!ctxt.equals(request.getMappingData().context)) {
                                 // Set version so second time through mapping
                                 // the correct context is found
                                 version = ctxt.getWebappVersion();
                                 versionContext = ctxt;
                                 // Reset mapping
+                                // 重置 mapping
                                 request.getMappingData().recycle();
+                                // 需要重新映射的标志为 true
                                 mapRequired = true;
                                 // Recycle cookies and session info in case the
                                 // correct context is configured with different
@@ -773,7 +794,8 @@ public class CoyoteAdapter implements Adapter {
                     }
                 }
             }
-
+            // 如果找到的上下文处于暂停状态（`getPaused()` 返回 `true`），
+            // 则等待 1 秒钟后重置映射数据，并标记  `mapRequired = true`。
             if (!mapRequired && request.getContext().getPaused()) {
                 // Found a matching context but it is paused. Mapping data will
                 // be wrong since some Wrappers may not be registered at this
@@ -790,6 +812,7 @@ public class CoyoteAdapter implements Adapter {
         }
 
         // Possible redirect
+        // 如果映射数据中包含重定向路径，则进行重定向。
         MessageBytes redirectPathMB = request.getMappingData().redirectPath;
         if (!redirectPathMB.isNull()) {
             String redirectPath = URLEncoder.DEFAULT.encode(redirectPathMB.toString(), StandardCharsets.UTF_8);
@@ -811,6 +834,7 @@ public class CoyoteAdapter implements Adapter {
         }
 
         // Filter TRACE method
+        // 如果不允许 TRACE 方法，则返回 405 错误。
         if (!connector.getAllowTrace() && req.method().equals("TRACE")) {
             Wrapper wrapper = request.getWrapper();
             String header = null;
@@ -836,7 +860,7 @@ public class CoyoteAdapter implements Adapter {
             // Safe to skip the remainder of this method.
             return true;
         }
-
+        // 处理 HTTP 请求的认证和授权逻辑
         doConnectorAuthenticationAuthorization(req, request);
 
         return true;

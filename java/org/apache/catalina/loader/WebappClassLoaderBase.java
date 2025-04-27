@@ -1172,7 +1172,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
      */
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-
+        // Tomcat 类加载核心逻辑
         synchronized (getClassLoadingLock(name)) {
             if (log.isTraceEnabled()) {
                 log.trace("loadClass(" + name + ", " + resolve + ")");

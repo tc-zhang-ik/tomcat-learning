@@ -1365,13 +1365,14 @@ public class ContextConfig implements LifecycleListener {
         Host host = (Host) context.getParent();
 
         DefaultWebXmlCacheEntry entry = hostWebXmlCache.get(host);
-        // CatalinaBase + /conf/web.xml
+        // 全局级别 web.xml：CatalinaBase + /conf/web.xml
         InputSource globalWebXml = getGlobalWebXmlSource();
+        // 主机级别 web.xml：Catalina.base/conf/EngineName/HostName/conf/web.xml.default
         InputSource hostWebXml = getHostWebXmlSource();
 
         long globalTimeStamp = 0;
         long hostTimeStamp = 0;
-
+        // 获取 全局 web.xml 的时间戳
         if (globalWebXml != null) {
             URLConnection uc = null;
             try {
@@ -1392,7 +1393,7 @@ public class ContextConfig implements LifecycleListener {
                 }
             }
         }
-
+        // 获取 主机 web.xml 的时间戳
         if (hostWebXml != null) {
             URLConnection uc = null;
             try {
@@ -1413,7 +1414,7 @@ public class ContextConfig implements LifecycleListener {
                 }
             }
         }
-
+        // 缓存中存在，并且时间戳一致，则直接返回缓存
         if (entry != null && entry.getGlobalTimeStamp() == globalTimeStamp &&
                 entry.getHostTimeStamp() == hostTimeStamp) {
             InputSourceUtil.close(globalWebXml);
@@ -1426,6 +1427,7 @@ public class ContextConfig implements LifecycleListener {
         // already be held on the host by another thread
         synchronized (host.getPipeline()) {
             entry = hostWebXmlCache.get(host);
+            // 缓存中存在，并且时间戳一致，则直接返回缓存
             if (entry != null && entry.getGlobalTimeStamp() == globalTimeStamp &&
                     entry.getHostTimeStamp() == hostTimeStamp) {
                 return entry.getWebXml();
@@ -1446,6 +1448,7 @@ public class ContextConfig implements LifecycleListener {
                 // This is unusual enough to log
                 log.info(sm.getString("contextConfig.defaultMissing"));
             } else {
+                // 解析全局 web.xml 操作
                 if (!webXmlParser.parseWebXml(globalWebXml, webXmlDefaultFragment, false)) {
                     ok = false;
                 }
@@ -1454,12 +1457,13 @@ public class ContextConfig implements LifecycleListener {
             // Parse host level web.xml if present
             // Additive apart from welcome pages
             webXmlDefaultFragment.setReplaceWelcomeFiles(true);
-            // 解析 web.xml 操作
+            // 解析主机级别 web.xml 操作
             if (!webXmlParser.parseWebXml(hostWebXml, webXmlDefaultFragment, false)) {
                 ok = false;
             }
 
             // Don't update the cache if an error occurs
+            // 更新缓存
             if (globalTimeStamp != -1 && hostTimeStamp != -1) {
                 entry = new DefaultWebXmlCacheEntry(webXmlDefaultFragment, globalTimeStamp, hostTimeStamp);
                 hostWebXmlCache.put(host, entry);
@@ -1928,6 +1932,7 @@ public class ContextConfig implements LifecycleListener {
             String className = clazz.getClassName();
             for (AnnotationEntry ae : annotationsEntries) {
                 String type = ae.getAnnotationType();
+                // 解析 @WebServlet 注解
                 if ("Ljavax/servlet/annotation/WebServlet;".equals(type)) {
                     processAnnotationWebServlet(className, ae, fragment);
                 } else if ("Ljavax/servlet/annotation/WebFilter;".equals(type)) {
@@ -2223,6 +2228,7 @@ public class ContextConfig implements LifecycleListener {
             }
         }
         if (!isWebXMLservletDef && urlPatterns != null) {
+            // 添加 servlet 到 webxml 对象
             fragment.addServlet(servletDef);
         }
         if (urlPatterns != null) {

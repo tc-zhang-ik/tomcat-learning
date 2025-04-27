@@ -4675,7 +4675,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         }
 
         // Post work directory
-        // 创建工作目录，一般为$tomcat_home/work/engine名（一般为catalina）/host名（如果是本机，那么就是localhost）
+        // 发布工作目录，一般为$tomcat_home/work/engine名（一般为catalina）/host名（如果是本机，那么就是localhost）
         // context的baseName（通常为path.substring(1)+"##"+版本）
         postWorkDirectory();
 
@@ -4701,7 +4701,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
             //挂载到根路径下。这个webResourceRoot用于后面类加载器设置类加载路径
             resourcesStart();
         }
-        // 如果没有设置类加载器，那么创建一个专属于context的类加载器
+        // 设置 Context 的 loader 为 WebappLoader
         if (getLoader() == null) {
             WebappLoader webappLoader = new WebappLoader();
             webappLoader.setDelegate(getDelegate());
